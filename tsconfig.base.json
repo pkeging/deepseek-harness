@@ -280,6 +280,8 @@
         "./packages/interaction/*/src",
         "./packages/boot/*/src",
         "./packages/examples/*/src",
+        "./packages/embedding/*/src",
+        "./packages/memory/*/src",
         "./packages/util/*/src",
         "./packages/mcp/*/src",
         "./packages/identity/*/src",
