@@ -222,6 +222,7 @@ export class BasicCompactionEngine extends CompactionEngine {
         // A model-free prune can land before later summary work fails. That
         // durable reduction is sufficient retry proof; do not discard it just
         // because the optional second phase threw. Cancellation still wins.
+        // oxlint-disable-next-line no-unnecessary-condition
         if (!signal.aborted && agent.session.surface.replaceGeneration > generation) {
           ctx.logger.warn(
             `context-overflow compaction failed after durable surface progress: ${message}; `
@@ -231,12 +232,14 @@ export class BasicCompactionEngine extends CompactionEngine {
           return { kind: 'retry' }
         }
         ctx.logger.warn(
+          // oxlint-disable-next-line no-unnecessary-condition
           `context-overflow compaction failed: ${message}; ${signal.aborted
             ? 'cancellation prevents retry'
             : 'preserving the original request error'}`,
         )
         return next()
       }
+      // oxlint-disable-next-line no-unnecessary-condition
       if (signal.aborted
         || agent.session.surface.replaceGeneration <= generation) return next()
       if (result !== null) logResult(result, 'context overflow recovery')
