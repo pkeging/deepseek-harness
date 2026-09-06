@@ -53,7 +53,6 @@ function extractFactCategory(text: string, category: FactCategory): string[] {
       }
       break
     case 'decisions': {
-      // oxlint-disable-next-line regexp/no-super-linear-backtracking -- character class is non-nested
       const decisionRe = new RegExp(
         String.raw`\b(?:decided|chose|selected|approved|rejected|accepted|skipped|kept|dropped|changed|renamed|moved|deleted|created|fixed|resolved)`
           + String.raw`[^\n.]{5,80}[.!?]`,
