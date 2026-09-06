@@ -55,6 +55,11 @@ export class EvaluatorStaticProvider implements EvaluatorProvider {
     this.loopTools = new Set(config.loopSignals ?? ['read', 'grep', 'search'])
   }
 
+  /**
+   * Synchronous evaluation — returns a resolved promise to satisfy the
+   * EvaluatorProvider interface which requires `Promise<EvaluationResult>`.
+   */
+  // oxlint-disable-next-line require-await
   async evaluate(request: EvaluationRequest, signal?: AbortSignal): Promise<EvaluationResult> {
     if (signal?.aborted) throw new DOMException('cancelled', 'AbortError')
 
