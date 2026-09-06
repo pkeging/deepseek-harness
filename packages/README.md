@@ -42,6 +42,11 @@ Groups hold `packages/<group>/<pkg>/`; names stay `@deepseek-ai/dsh-<pkg>`. **Gr
 | [`plan/`](plan/README.md) | Plan collaboration state with a direct entry command and reviewed exit | Product — stable API |
 | [`preset/`](preset/README.md) | Per-session agent composition from preset `cordis.yml` files | Product — stable API |
 | [`guard/`](guard/README.md) | Loop-hygiene guards: advisory repeat-call reminders + the `tools/execute` deadline enforcer | Product — stable API |
+| [`intent-guard/`](intent-guard/README.md) | Intent drift detection seam: L1 behavior patterns + L2 semantic divergence over goal declarations | Product — stable API |
+| [`schema-align/`](schema-align/README.md) | Schema-contract alignment: ToolContract registry for detecting silent schema-implementation drift | Product — stable API |
+| [`evaluator/`](evaluator/README.md) | External evaluator seam: independent trajectory evaluation with rule-based and LLM provider backends | Product — stable API |
+| [`intent-clarify/`](intent-clarify/README.md) | Bidirectional intent clarification: gates execution when drift exceeds threshold, triggers human confirmation | Product — stable API |
+| [`memory-integrity/`](memory-integrity/README.md) | Memory digest immutability: SHA-256 content-addressed integrity verification for cross-session memory entries | Product — stable API |
 | [`bundle/`](bundle/README.md) | Installable `dsh --profile` patch layers | Product — stable API |
 | [`extensions/`](extensions/README.md) | Agent runtime self-modification: live plugin/service inspection and model-written plugin mount/unmount ([design](../.agents/notes/implemented/feature/2026-07-08-self-referential-cordis-toolset.md)) | Product — stable API |
 | [`hooks/`](hooks/README.md) | Hook bridges + the shared Claude Code / Codex wire-protocol library | Product — stable API |

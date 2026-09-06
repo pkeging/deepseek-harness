@@ -39,6 +39,8 @@ const BASIC_COMPACT_CONFIG_KEYS: ReadonlySet<string> = new Set([
   ...POLICY_CONFIG_KEYS,
   'modelPolicies',
   'auto',
+  'midStepPressureCheck',
+  'midStepPressureThreshold',
 ])
 
 /** Complete exact-target override key set. */
@@ -93,6 +95,8 @@ export function resolveConfig(config: BasicCompactionConfig = {}): ResolvedConfi
     maxOverflowRetries: config.maxOverflowRetries ?? 1,
     modelPolicies,
     auto: config.auto ?? true,
+    midStepPressureCheck: config.midStepPressureCheck ?? false,
+    midStepPressureThreshold: config.midStepPressureThreshold ?? 3,
   })
 }
 

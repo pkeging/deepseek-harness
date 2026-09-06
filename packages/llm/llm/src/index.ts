@@ -26,7 +26,7 @@ import type { ResolvedRetryPolicy } from './retry-policy.ts'
 import type { ProviderRequestId } from './brand.ts'
 import { callConfigEquals, deepFreeze } from './call-config.ts'
 import type { LlmCallConfig, LlmCallConfigAdapterDefaults } from './call-config.ts'
-import { HarnessError, INVALID_CREDENTIAL_CODE } from './error.ts'
+import { HarnessError, INVALID_CREDENTIAL_CODE, httpErrorCodeFromDetail } from './error.ts'
 import { normalizeLlmFailure } from './adapter-failure.ts'
 import { normalizeApiKey } from './api-key.ts'
 import { contentHasImage, projectImagesForTextModel } from './content.ts'
@@ -205,6 +205,21 @@ export abstract class LlmAdapter {
    */
   providerRetryPolicy(_provider: string): ResolvedRetryPolicy | undefined {
     return undefined
+  }
+
+  /**
+   * Classify one provider error into a provider-neutral machine code. The
+   * default implementation maps status lines and text classifiers from
+   * {@link httpErrorCodeFromDetail}; override to inject provider-specific
+   * classification (structured error codes, type fields, or custom regex).
+   * Adapters call this from their HTTP error path instead of inlining the
+   * mapping logic, so a custom subclass can replace the default taxonomy.
+   * @param status - the HTTP status returned by the provider.
+   * @param detail - provider error code/type/message text joined into one string.
+   * @returns the stable machine-routable error code.
+   */
+  classifyError(status: number, detail: string | undefined): string {
+    return httpErrorCodeFromDetail(status, detail)
   }
 
   /**

@@ -70,6 +70,42 @@ const EXCEEDS_MODEL_CONTEXT = new RegExp(
   'i',
 )
 
+/** "Longer than" wording, also used by OpenAI-compatible providers. */
+const LONGER_THAN_CONTEXT = new RegExp(
+  String.raw`\b(?:input|prompt|request|messages?)\b.{0,60}`
+  + String.raw`\bis\s+longer\s+than\b.{0,60}`
+  + String.raw`\b(?:the\s+)?(?:model(?:'s)?\s+)?context(?:\s+(?:length|window))?\b`,
+  'i',
+)
+
+/**
+ * Map one HTTP status and provider error detail to a provider-neutral error code.
+ * Adapters call this from their `classifyError` override when they have no
+ * provider-specific classification; the default implementation covers the most
+ * common OpenAI-compatible error wording.
+ * @param status - the HTTP status returned by the provider.
+ * @param detail - provider error code/type/message text joined into one string,
+ *   or `undefined` when the response body could not be parsed.
+ * @returns the stable machine-routable error code.
+ */
+export function httpErrorCodeFromDetail(status: number, detail?: string): string {
+  if (status === 401 || status === 403) return 'AUTH'
+  if (status === 413) return 'INVALID_REQUEST'
+  if (detail === undefined) {
+    if (status === 429) return 'RATE_LIMIT'
+    if (status >= 500) return 'SERVER'
+    return `HTTP_${status}`
+  }
+  if (isQuotaExceededError(detail)) return QUOTA_EXCEEDED_CODE
+  if (status === 429) return 'RATE_LIMIT'
+  if (status === 400) {
+    if (isContextWindowExceededError(detail)) return CONTEXT_WINDOW_EXCEEDED_CODE
+    return 'INVALID_REQUEST'
+  }
+  if (status >= 500) return 'SERVER'
+  return `HTTP_${status}`
+}
+
 /**
  * Recognize the context-overflow wording used by OpenAI-compatible providers
  * and library adapters. Adapters pass all available provider code, type, and
@@ -83,6 +119,7 @@ export function isContextWindowExceededError(detail: string): boolean {
     || TOO_LARGE_FOR_CONTEXT.test(detail)
     || /\b(?:input|prompt|request)\s+(?:is\s+)?too\s+(?:long|large)\s+for\s+(?:this|the)\s+model\b/i.test(detail)
     || EXCEEDS_MODEL_CONTEXT.test(detail)
+    || LONGER_THAN_CONTEXT.test(detail)
 }
 
 /**

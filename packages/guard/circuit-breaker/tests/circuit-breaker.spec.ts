@@ -134,15 +134,14 @@ describe('exclude patterns', () => {
     const adapter = new MockAdapter([
       toolCallResponse('c1', 'edit', { q: 'x' }),
       toolCallResponse('c2', 'other', {}), // excluded → invisible
-      toolCallResponse('c3', 'edit', { q: 'x' }), // 2nd tracked failure
-      toolCallResponse('c4', 'edit', { q: 'x' }), // 3rd tracked failure → HALT
+      toolCallResponse('c3', 'edit', { q: 'x' }), // 2nd tracked failure → HALT
       textResponse('done'),
     ])
     ctx.llm.registerAdapter(['mock'], adapter)
     agent.followup(createUserMessage({ content: [{ type: 'text', text: 'go' }], source: { kind: 'user' } }))
     await waitForIdle(ctx, agent)
 
-    // edit was called 3 times (the excluded 'other' call doesn't count)
-    expect(editCalls).toBe(3)
+    // edit was called 2 times (the excluded 'other' call doesn't count; 2 failures trigger HALT)
+    expect(editCalls).toBe(2)
   })
 })

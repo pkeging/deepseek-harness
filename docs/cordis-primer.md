@@ -37,6 +37,41 @@ For single-decision events, short-circuiting is the design. A policy listener ca
 
 `@deepseek-ai/cordis-plugin-include` parses `!!js` into expression nodes. Loader interpolates an entry's `config` (after declared injections activate, against that plugin context — `ctx.serviceName`) and its `disabled` field (at every mount decision, against the loader context); Include preserves nested row expressions until target activation. Other entry metadata stays literal. Use overlays when the environment selects plugins.
 
+**Supported expression positions:**
+
+| Field | Interpolated? | Context |
+|---|---|---|
+| `config` | ✅ Yes | Plugin context (`ctx.serviceName`) after injections activate |
+| `disabled` | ✅ Yes | Loader context at mount time |
+| `id`, `name`, `group`, `inject`, `intercept`, `isolate` | ❌ No | Must be static literals |
+| Nested values under `config` | ✅ Yes | Recursively interpolated |
+| Nested values under `disabled` | ❌ No | Expression must be at the field root |
+
+**Common mistakes:**
+
+```yaml
+# WRONG: disabled with nested expression (Postmortem 0002)
+- name: '@deepseek-ai/dsh-tool-fs'
+  disabled: { when: { __jsExpr: 'process.env.FULL_ACCESS' } }
+  # The { when: { __jsExpr: ... } } is truthy data, not an evaluated expression
+
+# WRONG: !!js under non-config metadata
+- name: '@deepseek-ai/dsh-tool-fs'
+  id: { __jsExpr: "'tool-' + name" }
+  # id must be a static string
+
+# CORRECT: conditional disabled
+- name: '@deepseek-ai/dsh-tool-fs'
+  disabled: !!jsexpr 'process.env.FULL_ACCESS === "true"'
+
+# CORRECT: conditional config (evaluated in plugin context)
+- name: '@deepseek-ai/dsh-compaction-basic'
+  config:
+    thresholdRatio: !!jsexpr 'process.env.CI ? 0.9 : 0.8'
+```
+
+When `!!js` does not produce the intended effect, the entry is usually present but with truthy non-Boolean data — the Loader treats it as enabled. For environment-based plugin selection, prefer overlays ([see overlay pattern](../packages/bundle/base/README.md#overlays)) rather than conditional metadata.
+
 ## Practical Rules
 
 Encapsulate behavior into plugins: a tool pipeline event belongs to `ctx.tools`, model streaming belongs to `ctx.llm`, and live agent coordination belongs to `ctx.agents`. Prefer events for interception and policy; prefer service methods for direct capability calls.

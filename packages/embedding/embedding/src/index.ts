@@ -73,8 +73,11 @@ export class EmbeddingRuntime extends Service {
     embeddingProvider: z.string(),
   })
 
-  private providers = new Map<string, EmbeddingProvider>()
+  private _providers = new Map<string, EmbeddingProvider>()
   private readonly providerId: string | undefined
+
+  /** Read-only view of registered providers. */
+  readonly providers: ReadonlyMap<string, EmbeddingProvider> = this._providers
 
   constructor(ctx: Context, config: EmbeddingRuntimeConfig = {}) {
     super(ctx, 'embedding')
@@ -90,13 +93,13 @@ export class EmbeddingRuntime extends Service {
    * @returns the disposer that unregisters the provider.
    */
   registerProvider(provider: EmbeddingProvider): () => void {
-    if (this.providers.has(provider.id)) {
+    if (this._providers.has(provider.id)) {
       throw new EmbeddingError(
         `an embedding provider with id "${provider.id}" is already registered`,
         'EMBEDDING_DUPLICATE_PROVIDER',
       )
     }
-    const store = this.providers
+    const store = this._providers
     const dispose = this.ctx.effect(function* () {
       store.set(provider.id, provider)
       yield () => store.delete(provider.id)

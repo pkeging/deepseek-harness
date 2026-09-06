@@ -5,6 +5,7 @@ import LlmRuntime, {
   errorChain,
   GenerateOptions,
   HarnessError,
+  httpErrorCodeFromDetail,
   isContextWindowExceededError,
   isQuotaExceededError,
   LlmAdapter,
@@ -108,6 +109,7 @@ describe('LlmRuntime', () => {
     expect(isContextWindowExceededError('input is too long for this model')).toBe(true)
     expect(isContextWindowExceededError('request too large for model context')).toBe(true)
     expect(isContextWindowExceededError('input exceeds the model context window limit')).toBe(true)
+    expect(isContextWindowExceededError("The input (605242 tokens) is longer than the model's context length (524288 tokens).")).toBe(true)
   })
 
   it('does not mistake unrelated input validation for context-window overflow', () => {
@@ -127,6 +129,17 @@ describe('LlmRuntime', () => {
     ]) expect(isQuotaExceededError(detail)).toBe(true)
     expect(isQuotaExceededError('HTTP 429: rate limit reached')).toBe(false)
     expect(isQuotaExceededError('quota resets in one minute')).toBe(false)
+  })
+
+  it('classifies HTTP status + detail into provider-neutral error codes', () => {
+    expect(httpErrorCodeFromDetail(400, 'request too large for model context')).toBe('CONTEXT_WINDOW_EXCEEDED')
+    expect(httpErrorCodeFromDetail(400, 'invalid input: temperature exceeds maximum allowed value')).toBe('INVALID_REQUEST')
+    expect(httpErrorCodeFromDetail(413, 'context_length_exceeded')).toBe('INVALID_REQUEST')
+    expect(httpErrorCodeFromDetail(429, 'insufficient_quota account credits exhausted')).toBe('QUOTA')
+    expect(httpErrorCodeFromDetail(429, 'request rate limit exceeded')).toBe('RATE_LIMIT')
+    expect(httpErrorCodeFromDetail(401, undefined)).toBe('AUTH')
+    expect(httpErrorCodeFromDetail(500, undefined)).toBe('SERVER')
+    expect(httpErrorCodeFromDetail(418, undefined)).toBe('HTTP_418')
   })
 
   it('errorChain renders the full cause chain of a wrapped transport failure', () => {
@@ -384,7 +397,6 @@ describe('LlmRuntime', () => {
           [Symbol.asyncIterator](): AsyncIterator<StreamChunk> {
             return {
               // Third-party adapters can reject with arbitrary values.
-              // oxlint-disable-next-line typescript/prefer-promise-reject-errors
               next: () => Promise.reject('plain provider failure'),
             }
           },

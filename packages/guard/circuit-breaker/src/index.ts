@@ -107,7 +107,8 @@ export function apply(ctx: Context, config: Config): void {
   const includePatterns = (config.include as string[]).map(wildcardToRegExp)
   const excludePatterns = (config.exclude as string[]).map(wildcardToRegExp)
 
-  const chains = new WeakMap<Agent, ChainState>()
+  /** Per-agent failure chain state, keyed by agent.id (Cordis events use different object instances per callback). */
+  const chains = new Map<string, ChainState>()
 
   /** Whether a tool participates in the chain. */
   function tracked(toolName: string): boolean {
@@ -116,10 +117,10 @@ export function apply(ctx: Context, config: Config): void {
   }
 
   /**
- * Check if the agent's circuit is open (halted).
- */
+   * Check if the agent's circuit is open (halted).
+   */
   function isHalted(agent: Agent): boolean {
-    const state = chains.get(agent)
+    const state = agent ? chains.get(agent.id) : undefined
     return state?.halted ?? false
   }
 
@@ -132,8 +133,7 @@ export function apply(ctx: Context, config: Config): void {
     if (!tracked(exec.name)) return undefined
 
     const canonical = canonicalize(exec.arguments)
-    const prev = chains.get(exec.agent)
-    console.log('CB observe:', exec.name, 'isFailure:', isFailure, 'prev:', prev ? `failures=${prev.failures.length} halted=${prev.halted}` : 'undefined', 'agentAddr:', exec.agent.id)
+    const prev = chains.get(exec.agent.id)
     const state = prev ?? { failures: [], halted: false }
 
     if (isFailure) {
@@ -141,11 +141,12 @@ export function apply(ctx: Context, config: Config): void {
         toolName: exec.name,
         canonicalArgs: canonical,
       })
+      chains.set(exec.agent.id, state)
 
       // Check if threshold reached
       if (state.failures.length >= failureThreshold && !state.halted) {
         state.halted = true
-        chains.set(exec.agent, state)
+        chains.set(exec.agent.id, state)
 
         return createUserMessage({
           content: [{
@@ -164,7 +165,7 @@ export function apply(ctx: Context, config: Config): void {
         state.halted = false
       }
       state.failures = []
-      chains.set(exec.agent, state)
+      chains.set(exec.agent.id, state)
     }
 
     return undefined
@@ -175,7 +176,6 @@ export function apply(ctx: Context, config: Config): void {
    */
   ctx.on('tools/pre-execute', async (exec: ToolExecution, next: () => Promise<import('@deepseek-ai/dsh-tools').PreToolDecision>): Promise<import('@deepseek-ai/dsh-tools').PreToolDecision> => {
     const halted = exec.agent ? isHalted(exec.agent) : false
-    console.log('CB pre-execute:', exec.name, 'halted:', halted, 'agentId:', exec.agent?.id)
     if (exec.agent && halted) {
       return {
         kind: 'deny',
@@ -190,9 +190,7 @@ export function apply(ctx: Context, config: Config): void {
    */
   ctx.on('tools/post-execute', async (exec: ToolExecution, result: import('@deepseek-ai/dsh-tools').ToolExecutionResult, next: () => Promise<import('@deepseek-ai/dsh-tools').PostToolDecision>): Promise<import('@deepseek-ai/dsh-tools').PostToolDecision> => {
     const isFailure = result?.isError === true
-    console.log('CB post-execute:', exec.name, 'isError:', isFailure, 'agentId:', exec.agent?.id)
     const reminder = observe(exec, isFailure)
-    console.log('CB observe returned:', !!reminder)
     const downstream = await next()
 
     if (!reminder) return downstream
@@ -214,12 +212,21 @@ export function apply(ctx: Context, config: Config): void {
    */
   ctx.on('agent/pre-step', ({ agent, messages }: { agent: Agent; messages: import('@deepseek-ai/dsh-session').UserMessage[] }, next: () => Promise<import('@deepseek-ai/dsh-agent').PreStepDecision>): Promise<import('@deepseek-ai/dsh-agent').PreStepDecision> => {
     if (messages.some((m: import('@deepseek-ai/dsh-session').UserMessage) => m.source.kind === 'user')) {
-      const state = chains.get(agent)
+      const state = agent ? chains.get(agent.id) : undefined
       if (state) {
         state.halted = false
         state.failures = []
       }
     }
     return next()
+  })
+
+  /**
+   * Clean up chain state when an agent goes idle.
+   */
+  ctx.on('agent/status', ({ agent, status }: { agent: Agent; status: string }) => {
+    if (status === 'idle' && agent) {
+      chains.delete(agent.id)
+    }
   })
 }

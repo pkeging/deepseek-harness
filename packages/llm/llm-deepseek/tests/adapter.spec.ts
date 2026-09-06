@@ -19,7 +19,7 @@ import { getOrCreateAnonymousUserId, type AnonymousUserId } from '@deepseek-ai/d
 import { SessionId } from '@deepseek-ai/dsh-session'
 import * as LlmDeepSeek from '@deepseek-ai/dsh-llm-deepseek'
 import { DeepSeekAdapter, resolveAdapterOptions } from '@deepseek-ai/dsh-llm-deepseek'
-import { httpErrorCode, resolveRequestImagePolicy } from '../src/adapter.ts'
+import { resolveRequestImagePolicy } from '../src/adapter.ts'
 import { assemble } from './assemble.ts'
 import { closeMockServers, mockServer, textEvents } from './mock-server.ts'
 import type { Behavior } from './mock-server.ts'
@@ -1227,17 +1227,19 @@ describe('DeepSeekAdapter against a mock server', () => {
   })
 
   it('classifies only context-capacity HTTP 400 details as context overflow', () => {
-    expect(httpErrorCode(400, { message: 'request too large for model context' }))
+    const adapter = adapterOf()
+    expect(adapter.classifyError(400, 'request too large for model context'))
       .toBe(CONTEXT_WINDOW_EXCEEDED_CODE)
-    expect(httpErrorCode(400, { message: 'invalid input: temperature exceeds maximum allowed value' }))
+    expect(adapter.classifyError(400, 'invalid input: temperature exceeds maximum allowed value'))
       .toBe('INVALID_REQUEST')
-    expect(httpErrorCode(413, { code: 'context_length_exceeded' })).toBe('INVALID_REQUEST')
+    expect(adapter.classifyError(413, 'context_length_exceeded')).toBe('INVALID_REQUEST')
   })
 
   it('distinguishes terminal quota exhaustion from transient HTTP 429 throttling', () => {
-    expect(httpErrorCode(429, { code: 'insufficient_quota', message: 'account credits exhausted' }))
+    const adapter = adapterOf()
+    expect(adapter.classifyError(429, 'insufficient_quota account credits exhausted'))
       .toBe(QUOTA_EXCEEDED_CODE)
-    expect(httpErrorCode(429, { message: 'request rate limit exceeded' })).toBe('RATE_LIMIT')
+    expect(adapter.classifyError(429, 'request rate limit exceeded')).toBe('RATE_LIMIT')
   })
 
   it('keeps the status-line message for JSON error bodies without a message', async () => {
@@ -1261,7 +1263,8 @@ describe('DeepSeekAdapter against a mock server', () => {
   })
 
   it('maps unusual statuses to HTTP_<status>', () => {
-    expect(httpErrorCode(418)).toBe('HTTP_418')
+    const adapter = adapterOf()
+    expect(adapter.classifyError(418, undefined)).toBe('HTTP_418')
   })
 
   it('reports a transport failure with the endpoint in the message', async () => {
@@ -1454,7 +1457,6 @@ describe('DeepSeekAdapter against a mock server', () => {
 describe('plugin registration and config', () => {
   it('keeps wire helpers off the package root', () => {
     for (const helper of [
-      'httpErrorCode',
       'serializeMessages',
       'serializeRequest',
       'DONE',
