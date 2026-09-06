@@ -120,7 +120,7 @@ export function apply(ctx: Context, config: Config): void {
    * Check if the agent's circuit is open (halted).
    */
   function isHalted(agent: Agent): boolean {
-    const state = agent ? chains.get(agent.id) : undefined
+    const state = chains.get(agent.id)
     return state?.halted ?? false
   }
 
@@ -189,7 +189,7 @@ export function apply(ctx: Context, config: Config): void {
    * On post-execute, check if the result indicates failure and act accordingly.
    */
   ctx.on('tools/post-execute', async (exec: ToolExecution, result: import('@deepseek-ai/dsh-tools').ToolExecutionResult, next: () => Promise<import('@deepseek-ai/dsh-tools').PostToolDecision>): Promise<import('@deepseek-ai/dsh-tools').PostToolDecision> => {
-    const isFailure = result?.isError === true
+    const isFailure = result.isError
     const reminder = observe(exec, isFailure)
     const downstream = await next()
 
@@ -212,7 +212,7 @@ export function apply(ctx: Context, config: Config): void {
    */
   ctx.on('agent/pre-step', ({ agent, messages }: { agent: Agent; messages: import('@deepseek-ai/dsh-session').UserMessage[] }, next: () => Promise<import('@deepseek-ai/dsh-agent').PreStepDecision>): Promise<import('@deepseek-ai/dsh-agent').PreStepDecision> => {
     if (messages.some((m: import('@deepseek-ai/dsh-session').UserMessage) => m.source.kind === 'user')) {
-      const state = agent ? chains.get(agent.id) : undefined
+      const state = chains.get(agent.id)
       if (state) {
         state.halted = false
         state.failures = []
@@ -225,7 +225,7 @@ export function apply(ctx: Context, config: Config): void {
    * Clean up chain state when an agent goes idle.
    */
   ctx.on('agent/status', ({ agent, status }: { agent: Agent; status: string }) => {
-    if (status === 'idle' && agent) {
+    if (status === 'idle') {
       chains.delete(agent.id)
     }
   })

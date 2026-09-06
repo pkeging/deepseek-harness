@@ -24,12 +24,12 @@ describe('resolveConfig', () => {
   })
 
   it('rejects invalid cachePreservationPriority', () => {
-    expect(() => resolveConfig({ cachePreservationPriority: -0.1 } as never)).toThrow()
-    expect(() => resolveConfig({ cachePreservationPriority: 1.1 } as never)).toThrow()
+    expect(() => resolveConfig({ cachePreservationPriority: -0.1 })).toThrow()
+    expect(() => resolveConfig({ cachePreservationPriority: 1.1 })).toThrow()
   })
 
   it('rejects invalid minCacheReuseRatio', () => {
-    expect(() => resolveConfig({ minCacheReuseRatio: -0.1 } as never)).toThrow()
-    expect(() => resolveConfig({ minCacheReuseRatio: 1.1 } as never)).toThrow()
+    expect(() => resolveConfig({ minCacheReuseRatio: -0.1 })).toThrow()
+    expect(() => resolveConfig({ minCacheReuseRatio: 1.1 })).toThrow()
   })
 })

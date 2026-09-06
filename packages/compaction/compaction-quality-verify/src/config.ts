@@ -49,7 +49,8 @@ export function resolveConfig(config: CompactionVerifyConfig = {}): ResolvedVeri
     throw new Error('CompactionVerifyConfig: factCategories must be a non-empty array')
   }
   for (const cat of factCategories) {
-    if (!['file-paths', 'error-messages', 'numeric-values', 'decisions'].includes(cat)) {
+    const validCategories = ['file-paths', 'error-messages', 'numeric-values', 'decisions'] as const
+    if (!validCategories.includes(cat as typeof validCategories[number])) {
       throw new Error(`CompactionVerifyConfig: unknown fact category "${cat}"`)
     }
   }

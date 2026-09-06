@@ -69,7 +69,7 @@ export function resolveEncodingForModel(model: string): TiktokenEncoding | undef
 async function requireTiktoken(): Promise<{ get_encoding: (name: string) => { encode: (text: string) => number[]; close: () => void } }> {
   try {
     const mod = await import('tiktoken')
-    return mod as unknown as { get_encoding: (name: string) => { encode: (text: string) => number[]; close: () => void } }
+    return mod
   } catch {
     throw new Error(
       'tiktoken is not installed. Run: pnpm add tiktoken'

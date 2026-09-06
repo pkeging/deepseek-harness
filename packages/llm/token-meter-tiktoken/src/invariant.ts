@@ -12,7 +12,7 @@ const PACKAGE_NAME = '@deepseek-ai/dsh-token-meter-tiktoken'
 /** Cordis companion plugin name. */
 export const name = 'token-meter-tiktoken-invariant'
 /** Services required before the companion can register. */
-export const inject: string[] = []
+export const inject = ['invariants']
 
 /** No runtime invariant: this is a utility package, not a service. */
 const install: InvariantInstaller = () => {}

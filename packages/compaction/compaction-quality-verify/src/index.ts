@@ -65,20 +65,20 @@ export class CompactionQualityVerify extends Service {
     })
 
     // Run verification when compaction ends
-    ctx.on('session/event', (_session, event): Promise<undefined> => {
-      if (event.type !== 'compaction/end') return Promise.resolve(undefined)
-      if (!this.config.enabled) return Promise.resolve(undefined)
+    ctx.on('session/event', (_session, event): undefined => {
+      if (event.type !== 'compaction/end') return undefined
+      if (!this.config.enabled) return undefined
 
       const data = event.data as { compactionId: string; error?: string }
-      if (data.error !== undefined) return Promise.resolve(undefined)
+      if (data.error !== undefined) return undefined
 
       const pending = this.pendingVerifications.get(data.compactionId)
-      if (pending === undefined) return Promise.resolve(undefined)
+      if (pending === undefined) return undefined
       this.pendingVerifications.delete(data.compactionId)
 
       const result = this._verify(data.compactionId, pending.summary, pending.shadowedSeqs, _session)
       this._reportResult(result)
-      return Promise.resolve(undefined)
+      return undefined
     })
   }
 
@@ -166,7 +166,7 @@ export class CompactionQualityVerify extends Service {
         return event.data.content.map((b): string => b.type === 'text' ? b.text : '').join('\n')
       case 'tool/result':
         // ToolResultMessage.content is [ToolResultBlock], extract text from block.content
-        return event.data.message.content[0]?.content.map((b): string => b.type === 'text' ? b.text : '').join('\n')
+        return event.data.message.content[0].content.map((b): string => b.type === 'text' ? b.text : '').join('\n')
       default:
         return undefined
     }
