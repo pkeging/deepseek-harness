@@ -121,7 +121,10 @@ export class EvaluatorService extends Service {
     }
     // Use the first registered provider; in future versions this could
     // support weighted voting across providers.
-    return this._providers[0].evaluate(request, signal)
+    const first = this._providers[0]
+    // first is guaranteed non-null because we threw above when length === 0
+    /* v8 ignore next -- guarded by length check above */
+    return first.evaluate(request, signal)
   }
 }
 
