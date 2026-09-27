@@ -36,6 +36,7 @@ export const PRIVATE_PACKAGE_DIRECTORIES: readonly string[] = [
   'packages/intent-guard/intent-guard/',
   'packages/intent-guard/intent-guard-checker/',
   'packages/intent-guard/tool-intent-guard/',
+  'packages/llm/llm-ollama/',
   'packages/llm/token-meter-tiktoken/',
   'packages/memory/memory/',
   'packages/memory/memory-agent/',

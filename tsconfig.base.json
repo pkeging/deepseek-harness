@@ -438,6 +438,8 @@
       "@deepseek-ai/dsh-llm-judge": ["./packages/evaluation/llm-judge/src"],
       "@deepseek-ai/dsh-llm-judge/invariant": ["./packages/evaluation/llm-judge/src/invariant.ts"],
       "@deepseek-ai/dsh-llm-mock-server": ["./packages/test-support/llm-mock-server/src"],
+      "@deepseek-ai/dsh-llm-ollama": ["./packages/llm/llm-ollama/src"],
+      "@deepseek-ai/dsh-llm-ollama/invariant": ["./packages/llm/llm-ollama/src/invariant.ts"],
       "@deepseek-ai/dsh-llm-pi-ai": ["./packages/llm/llm-pi-ai/src"],
       "@deepseek-ai/dsh-llm-replay": ["./packages/test-support/llm-replay/src"],
       "@deepseek-ai/dsh-llm-retry": ["./packages/llm/llm-retry/src"],
