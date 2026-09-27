@@ -16,6 +16,7 @@
     { "path": "../../core/agent" },
     { "path": "../../core/tools" },
     { "path": "../../core/system-prompt" },
+    { "path": "../../session/session-projection" },
     { "path": "../../core/scope" },
     { "path": "../../util/timeout" },
     { "path": "../../util/brand" },

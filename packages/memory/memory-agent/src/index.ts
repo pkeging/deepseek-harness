@@ -32,7 +32,7 @@ import type {
   Message,
 } from '@deepseek-ai/dsh-llm'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import type { SessionEvent } from '@deepseek-ai/dsh-session'
+import type { Session } from '@deepseek-ai/dsh-session'
 import type {
   MemoryEntry,
   MemoryKind,
@@ -42,10 +42,12 @@ import type {
 import { deadline, MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
 import type {} from '@deepseek-ai/dsh-system-prompt'
 import type { AssembleContext, PromptAssembly } from '@deepseek-ai/dsh-system-prompt'
+import { memoryAgentContextProjection } from './projection.ts'
+import type { MemoryAgentContextState } from './projection.ts'
 
 export const name = 'memory-agent'
 
-export const inject = ['memory', 'systemPrompt', 'llm']
+export const inject = ['memory', 'systemPrompt', 'llm', 'sessionProjections']
 
 export interface MemoryAgentConfig {
   /** Maximum memories injected into one prompt assembly. Defaults to `5`. */
@@ -116,10 +118,6 @@ interface ExtractedMemoryItem {
 
 interface PerSessionState {
   lastExtractAt: number
-  /** Events of the current and immediately preceding turn, maintained incrementally. */
-  recentEvents: SessionEvent[]
-  /** Index into {@link recentEvents} where the current turn begins. */
-  currentTurnStart: number
 }
 
 export function isReviewQuery(text: string): boolean {
@@ -135,60 +133,6 @@ export function formatMemorySection(entries: readonly MemoryEntry[], heading: st
     lines.push(`- ${entry.content}${tagPart}`)
   }
   return lines.join('\n')
-}
-
-export function lastUserMessageText(events: readonly SessionEvent[]): string {
-  for (const event of events.toReversed()) {
-    if (event.type !== 'user/message') continue
-    const msg = event.data
-    const parts: string[] = []
-    for (const block of msg.content) {
-      if (block.type === 'text') parts.push(block.text)
-    }
-    return parts.join(' ')
-  }
-  return ''
-}
-
-export function latestTurnTranscript(
-  events: readonly SessionEvent[],
-): { user: string; assistant: string } {
-  let latestTurn = -1
-  for (const event of events.toReversed()) {
-    if (event.type === 'turn/end') {
-      latestTurn = event.data.turn
-      break
-    }
-  }
-  if (latestTurn < 0) return { user: '', assistant: '' }
-
-  // Find the most recent user message (the input for this turn, before turn/end)
-  let userText = ''
-  for (const event of events.toReversed()) {
-    if (event.type === 'user/message') {
-      const msg = event.data
-      userText = msg.content
-        .filter(b => b.type === 'text')
-        .map(b => b.text)
-        .join(' ')
-      break
-    }
-  }
-
-  // Find the latest assistant message with matching turn
-  let assistantText = ''
-  for (const event of events.toReversed()) {
-    if (event.type === 'assistant/message' && event.data.turn === latestTurn) {
-      const msg = event.data.message
-      assistantText = msg.content
-        .filter((b): b is Extract<(typeof msg.content)[number], { type: 'text' }> => b.type === 'text')
-        .map(b => b.text)
-        .join(' ')
-      break
-    }
-  }
-
-  return { user: userText, assistant: assistantText }
 }
 
 export function finishError(finish: FinishReason): Error | undefined {
@@ -255,15 +199,6 @@ interface MemoryAgentServices {
   readonly llm: LlmRuntime
 }
 
-export function findLastRoute(events: readonly SessionEvent[]): { provider: string; model: string } | undefined {
-  for (const event of events.toReversed()) {
-    if (event.type !== 'request/header') continue
-    const header = event.data.header
-    return { provider: header.config.provider, model: header.config.model }
-  }
-  return undefined
-}
-
 async function checkDuplicate(
   content: string,
   threshold: number,
@@ -324,31 +259,36 @@ export function apply(ctx: Context & MemoryAgentServices, config: MemoryAgentCon
 
   const perSession = new WeakMap<object, PerSessionState>()
 
-  /** The maintained per-session state, created on first use. */
+  /** The extraction throttle for one session, created on first use. */
   function stateFor(session: unknown): PerSessionState {
     const key = session as object
     let state = perSession.get(key)
     if (state === undefined) {
-      state = { lastExtractAt: 0, recentEvents: [], currentTurnStart: 0 }
+      state = { lastExtractAt: 0 }
       perSession.set(key, state)
     }
     return state
   }
 
-  // Retain the current and preceding turn's events incrementally. The readers
-  // below derive what they need from this bounded window instead of scanning
-  // the session's full history, which deprecated synchronous reads forbid for
-  // new callers; the preceding turn stays because `latestTurnTranscript` needs
-  // its `turn/end` while the current turn is still open.
-  ctx.on('session/event', (session, event): undefined => {
-    const state = stateFor(session)
-    if (event.type === 'turn/start') {
-      state.recentEvents = state.recentEvents.slice(state.currentTurnStart)
-      state.currentTurnStart = state.recentEvents.length
-    }
-    state.recentEvents.push(event)
-    return undefined
-  })
+  // The values this plugin reads — the latest user text, the last completed
+  // turn's transcript, and the last request route — are folded by the
+  // `memoryAgentContext` projection instead of being scanned from the log,
+  // which deprecated synchronous history reads forbid for new callers. The
+  // registry materializes that state from the log, so a resumed session
+  // behaves like a live one from its first event rather than starting empty.
+  ctx.sessionProjections.register(memoryAgentContextProjection)
+
+  /**
+   * The folded memory context for one session.
+   * @param session - session whose committed events determine the context.
+   * @returns the maintained context.
+   * @throws when the projection is not registered on this runtime.
+   */
+  function contextOf(session: Session): MemoryAgentContextState {
+    const state = ctx.sessionProjections.stateOf(session, 'memoryAgentContext')
+    if (state === undefined) throw new Error('memory-agent: the memoryAgentContext projection is not registered')
+    return state
+  }
 
   ctx.on('system-prompt/assemble', async (
     _assembly: PromptAssembly,
@@ -358,7 +298,7 @@ export function apply(ctx: Context & MemoryAgentServices, config: MemoryAgentCon
     const downstream = await next()
     const agent = context.agent
     if (agent === undefined) return downstream
-    const userText = lastUserMessageText(stateFor(agent.session).recentEvents)
+    const userText = contextOf(agent.session).userText
     if (userText.length === 0) return downstream
 
     const review = isReviewQuery(userText)
@@ -413,7 +353,12 @@ export function apply(ctx: Context & MemoryAgentServices, config: MemoryAgentCon
       if (now - state.lastExtractAt < extractCooldownMs) return
       state.lastExtractAt = now
 
-      const transcript = latestTurnTranscript(state.recentEvents)
+      const context = contextOf(agent.session)
+      // The replaced reader reported the transcript of the last COMPLETED turn,
+      // so an open turn contributes nothing until its `turn/end` arrives.
+      const transcript = context.completedTurn < 0
+        ? { user: '', assistant: '' }
+        : { user: context.userText, assistant: context.completedTurnAssistant }
       if (transcript.user.length === 0 && transcript.assistant.length === 0) return
 
       let provider: string
@@ -422,10 +367,9 @@ export function apply(ctx: Context & MemoryAgentServices, config: MemoryAgentCon
         provider = config.extractProvider
         model = config.extractModel
       } else {
-        const route = findLastRoute(state.recentEvents)
-        if (route === undefined) return
-        provider = route.provider
-        model = route.model
+        if (context.provider.length === 0 || context.model.length === 0) return
+        provider = context.provider
+        model = context.model
       }
 
       const framedInput = `Transcript of the latest conversation turn:\nuser: ${transcript.user}\nassistant: ${transcript.assistant}`

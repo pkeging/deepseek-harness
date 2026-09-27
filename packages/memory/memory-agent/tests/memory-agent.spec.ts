@@ -7,14 +7,31 @@ import type {
 } from '@deepseek-ai/dsh-memory'
 import {
   formatMemorySection,
-  findLastRoute,
   finishError,
   isReviewQuery,
-  lastUserMessageText,
-  latestTurnTranscript,
   parseExtractionOutput,
   resolveKind,
 } from '../src/index.ts'
+import {
+  EMPTY_MEMORY_AGENT_CONTEXT,
+  memoryAgentContextProjection,
+} from '../src/projection.ts'
+import type { MemoryAgentContextState } from '../src/projection.ts'
+
+/** Fold the plugin's context projection over one event sequence. */
+function foldContext(events: readonly SessionEvent[]): MemoryAgentContextState {
+  return events.reduce<MemoryAgentContextState>(
+    (state, event) => memoryAgentContextProjection.apply(state, event),
+    EMPTY_MEMORY_AGENT_CONTEXT,
+  )
+}
+
+/** The route the plugin extracts with, or `undefined` when none is recorded. */
+function routeOf(state: MemoryAgentContextState): { provider: string; model: string } | undefined {
+  return state.provider.length === 0 || state.model.length === 0
+    ? undefined
+    : { provider: state.provider, model: state.model }
+}
 
 // --- Helpers to construct test events ---
 
@@ -129,73 +146,76 @@ describe('formatMemorySection', () => {
   })
 })
 
-describe('lastUserMessageText', () => {
-  it('returns empty string when no user messages', () => {
-    const events: SessionEvent[] = [makeTurnEndEvent(1)]
-    expect(lastUserMessageText(events)).toBe('')
+describe('memoryAgentContext projection', () => {
+  it('reports no user text before one arrives', () => {
+    expect(foldContext([makeTurnEndEvent(1)]).userText).toBe('')
   })
 
-  it('extracts text from the most recent user message', () => {
-    const events: SessionEvent[] = [
+  it('keeps the most recent user message text', () => {
+    const state = foldContext([
       makeUserMessageEvent('first message'),
       makeUserMessageEvent('latest message'),
-    ]
-    expect(lastUserMessageText(events)).toBe('latest message')
+    ])
+    expect(state.userText).toBe('latest message')
   })
 
-  it('skips non-text blocks', () => {
-    // UserMessage with only non-text blocks would yield empty
-    const msg = makeEvent('user/message', {
-      id: MessageId(`msg-${nextSeq()}`),
-      role: 'user',
-      content: [{ type: 'text', text: 'hello' }],
-      source: { kind: 'user' },
-    })
-    expect(lastUserMessageText([msg])).toBe('hello')
-  })
-})
-
-describe('latestTurnTranscript', () => {
-  it('returns empty strings when no turn/end event', () => {
-    const events: SessionEvent[] = [makeUserMessageEvent('hello')]
-    const result = latestTurnTranscript(events)
-    expect(result.user).toBe('')
-    expect(result.assistant).toBe('')
-  })
-
-  it('extracts latest turn transcript', () => {
-    const events: SessionEvent[] = [
+  it('captures the transcript of the turn that just closed', () => {
+    const state = foldContext([
       makeUserMessageEvent('user question'),
       makeAssistantMessageEvent(1, 'assistant reply'),
       makeTurnEndEvent(1),
-    ]
-    const result = latestTurnTranscript(events)
-    expect(result.user).toBe('user question')
-    expect(result.assistant).toBe('assistant reply')
+    ])
+    expect(state.completedTurn).toBe(1)
+    expect(state.userText).toBe('user question')
+    expect(state.completedTurnAssistant).toBe('assistant reply')
   })
 
-  it('matches assistant message to the latest turn', () => {
-    const events: SessionEvent[] = [
+  it('follows the latest completed turn across two turns', () => {
+    const state = foldContext([
       makeUserMessageEvent('turn 1 user'),
       makeAssistantMessageEvent(1, 'turn 1 assistant'),
       makeTurnEndEvent(1),
       makeUserMessageEvent('turn 2 user'),
       makeAssistantMessageEvent(2, 'turn 2 assistant'),
       makeTurnEndEvent(2),
-    ]
-    const result = latestTurnTranscript(events)
-    expect(result.user).toBe('turn 2 user')
-    expect(result.assistant).toBe('turn 2 assistant')
+    ])
+    expect(state.completedTurn).toBe(2)
+    expect(state.userText).toBe('turn 2 user')
+    expect(state.completedTurnAssistant).toBe('turn 2 assistant')
   })
 
-  it('returns empty assistant when no matching turn', () => {
-    const events: SessionEvent[] = [
+  it('keeps the closed turn transcript while the next turn is still open', () => {
+    const state = foldContext([
+      makeUserMessageEvent('turn 1 user'),
+      makeAssistantMessageEvent(1, 'turn 1 assistant'),
+      makeTurnEndEvent(1),
+      makeUserMessageEvent('turn 2 user'),
+      makeAssistantMessageEvent(2, 'turn 2 assistant'),
+    ])
+    expect(state.completedTurn).toBe(1)
+    expect(state.completedTurnAssistant).toBe('turn 1 assistant')
+  })
+
+  it('leaves the closed turn assistant empty when that turn produced none', () => {
+    const state = foldContext([
       makeUserMessageEvent('user only'),
       makeTurnEndEvent(1),
-    ]
-    const result = latestTurnTranscript(events)
-    expect(result.user).toBe('user only')
-    expect(result.assistant).toBe('')
+    ])
+    expect(state.userText).toBe('user only')
+    expect(state.completedTurnAssistant).toBe('')
+  })
+
+  it('reports no route before one is recorded', () => {
+    expect(foldContext([makeUserMessageEvent('hello')]).provider).toBe('')
+  })
+
+  it('keeps the latest request route', () => {
+    const state = foldContext([
+      makeRequestHeaderEvent('provider1', 'model1'),
+      makeRequestHeaderEvent('provider2', 'model2'),
+    ])
+    expect(state.provider).toBe('provider2')
+    expect(state.model).toBe('model2')
   })
 })
 
@@ -301,7 +321,8 @@ describe('resolveKind', () => {
 describe('findLastRoute', () => {
   it('returns undefined when no request/header event', () => {
     const events: SessionEvent[] = [makeUserMessageEvent('hello')]
-    expect(findLastRoute(events)).toBeUndefined()
+    const route = routeOf(foldContext(events))
+    expect(route).toBeUndefined()
   })
 
   it('finds the latest route', () => {
@@ -309,7 +330,6 @@ describe('findLastRoute', () => {
       makeRequestHeaderEvent('provider1', 'model1'),
       makeRequestHeaderEvent('provider2', 'model2'),
     ]
-    const result = findLastRoute(events)
-    expect(result).toEqual({ provider: 'provider2', model: 'model2' })
+    expect(routeOf(foldContext(events))).toEqual({ provider: 'provider2', model: 'model2' })
   })
 })
