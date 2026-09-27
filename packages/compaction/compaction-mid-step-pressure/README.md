@@ -36,18 +36,40 @@ The plugin calls the engine's `compactIfNeeded(agent, 'pressure', signal)`, the 
 
 The counter resets when a check runs and when the agent reports `idle`, so a batch never spans two turns.
 
+No invariant companion is published because the plugin owns no runtime relation an independent companion could check: its counter is private per-agent state, and the compaction a check triggers is observable through the engine's own events.
+
 ## Model Experience
 
-The plugin adds no prompt text, no tool schema, and no token of its own. Its only effect is to make a compaction happen earlier than the next step boundary would: the model sees a shortened conversation earlier in the turn rather than after the turn's next step.
+### Mid-turn compaction timing
 
-When a compaction does run mid-turn, the model's visible history is replaced by the compaction summary at that point, which can split a tool-call batch's results across the summarized and retained regions. Leave `threshold` above the largest expected parallel batch when that matters more than the earlier compaction.
+#### What the model sees
+
+The plugin contributes no prompt text and no tool declaration. Its whole model-visible effect is timing: once completed tool results reach `threshold`, the engine may compact inside the turn, so the next request already carries the checkpoint a step-boundary check would have produced later. A check that finds no pressure changes the request not at all.
+
+#### Token effect
+
+Zero direct tokens. The replacement itself and its token reduction belong to the compaction engine; this plugin only moves the decision earlier, and the checkpoint preamble and summary format the model reads are the engine's.
+
+#### KV Cache effect
+
+Independent of the plugin's own contribution, which carries no request tokens. A check that returns without compacting leaves the request prefix reusable; when the engine does replace an older range, that checkpoint invalidates reuse from the first replaced history token exactly as a step-boundary compaction does.
 
 ## Known Limitations and Deferred Work
 
-- The trigger reasons over tool-result count, not measured tokens. An engine-level trigger that prices the pending results and compacts on the real overflow delta would be exact where this one is heuristic.
-- A route with no pressure configuration warns on every check instead of being skipped quietly. The engine reports that condition through an error class this package cannot import without a deep import its source plane does not resolve, and a silent skip would hide a composition mistake.
-- Coverage is a stub-compaction behavior suite. A real-composition test that mounts `dsh-compaction-basic` over a replaying model and asserts the transcript of a mid-turn compaction is deferred.
+<a id="known-limitations-and-deferred-work"></a>
 
-## Dev Note
+These limits define when the mid-step trigger misfires or stays silent; they are the current package constraints.
+
+- **The trigger counts tool results, not tokens** — an engine-level trigger that prices the pending results and compacts on the measured overflow would be exact where this one is heuristic.
+- **A route with no pressure configuration warns on every check** — the engine reports that condition through an error class this package cannot import without a deep import its source plane does not resolve; a silent skip would hide a composition mistake.
+- **Coverage is a stub-compaction behavior suite** — a real-composition test that mounts `dsh-compaction-basic` over a replaying model and asserts the transcript of a mid-turn compaction is deferred.
+
+<a id="dev-note"></a>
+### Dev Note
+
+<details>
+<summary>Working context for maintainers — click to expand</summary>
 
 `ctx.compaction.compactIfNeeded` is public on the base `CompactionEngine`, and `'pressure'` is a public `CompactionTrigger`. The trigger therefore needs no engine internals and lives outside `compaction-basic`, which keeps the backend unmodified.
+
+</details>

@@ -1,0 +1,70 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/llm/llm-ollama/README.md
+/:
+  en: 68cd7f851343591f
+  zh: 615e58e6a0bb1b88
+/deepseek-ai-dsh-llm-ollama:
+  en: afacd7fd306bb8cf
+  zh: c4707ed1f72caab9
+/deepseek-ai-dsh-llm-ollama/summary:
+  en: 75b9b036f7278481
+  zh: ec05f4c984a394d7
+/deepseek-ai-dsh-llm-ollama/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: bda879a892f240f0
+/deepseek-ai-dsh-llm-ollama/use-this-package:
+  en: e1232624486f3e0b
+  zh: 8eb7c3f9f29bee40
+/deepseek-ai-dsh-llm-ollama/use-this-package/when-to-choose-it:
+  en: d5d0c7c89ba1f94f
+  zh: c915ea8fce4ab350
+/deepseek-ai-dsh-llm-ollama/use-this-package/minimal-configuration:
+  en: 5d97c7d91b283642
+  zh: a003f0279798da96
+/deepseek-ai-dsh-llm-ollama/use-this-package/route-the-daemon-s-models:
+  en: 6a03dadbddb4d649
+  zh: 8cc146f833a4e3ed
+/deepseek-ai-dsh-llm-ollama/use-this-package/read-the-failures:
+  en: bca34f6d399c4595
+  zh: 03059fc0c6d98a86
+/deepseek-ai-dsh-llm-ollama/understand-the-implementation:
+  en: d674b3f493633381
+  zh: 7351a7f8ee00317e
+/deepseek-ai-dsh-llm-ollama/further-exploration:
+  en: f916aa9719c91853
+  zh: b1a089bc4a080076
+/deepseek-ai-dsh-llm-ollama/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-llm-ollama/model-experience/provider-request-through-ollama:
+  en: 03c8dc0ed519d62f
+  zh: 0d8c7de2474aae77
+/deepseek-ai-dsh-llm-ollama/model-experience/provider-request-through-ollama/what-the-model-sees:
+  en: 317905b7aaca868e
+  zh: 65f686be0cac5248
+/deepseek-ai-dsh-llm-ollama/model-experience/provider-request-through-ollama/token-effect:
+  en: a6155005822c1bf3
+  zh: 12b7ebd7a3a8ba4c
+/deepseek-ai-dsh-llm-ollama/model-experience/provider-request-through-ollama/kv-cache-effect:
+  en: 183ed334a1292373
+  zh: 42fcef76ecaed111
+/deepseek-ai-dsh-llm-ollama/model-experience/provider-response:
+  en: 802d7ff60a1d03ff
+  zh: 7b43cc986e78104e
+/deepseek-ai-dsh-llm-ollama/model-experience/provider-response/what-the-model-sees:
+  en: 8152ac436db65db1
+  zh: e13479d5895612a0
+/deepseek-ai-dsh-llm-ollama/model-experience/provider-response/token-effect:
+  en: f5edb05c1e5da795
+  zh: 3e7949f03efa1501
+/deepseek-ai-dsh-llm-ollama/model-experience/provider-response/kv-cache-effect:
+  en: d2d9d0abcca49b31
+  zh: fd026892f47ddbbd
+/deepseek-ai-dsh-llm-ollama/known-limitations-and-deferred-work:
+  en: be903deaea37dd4f
+  zh: f410a690942a2d8f
+/deepseek-ai-dsh-llm-ollama/known-limitations-and-deferred-work/dev-note:
+  en: 8a08e58c001baa65
+  zh: 2af12594a376169c

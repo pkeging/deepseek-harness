@@ -26,6 +26,8 @@ export interface OllamaChatMessage {
   readonly role: 'system' | 'user' | 'assistant' | 'tool'
   /** Rendered text content. Ollama carries no structured blocks. */
   readonly content: string
+  /** Reasoning a thinking model streamed before its answer. */
+  readonly thinking?: string
   /** Base64-encoded images attached to a user message. */
   readonly images?: readonly string[]
   /** Tool calls an assistant message requests. */
@@ -106,5 +108,5 @@ export function decodeChunk(line: string): OllamaChatChunk | undefined {
   if (typeof parsed !== 'object' || parsed === null) {
     throw new Error('ollama: stream line is not a JSON object')
   }
-  return parsed as OllamaChatChunk
+  return parsed
 }
