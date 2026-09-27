@@ -1,4 +1,4 @@
-﻿{
+{
   // Host aggregate (one of the two check units; see tsconfig.json). packages/client
   // type-checks in tsconfig.client.json: the two sides merge cordis Context under
   // the same keys, one program cannot see both.
@@ -484,6 +484,7 @@
     { "path": "./packages/llm/token-meter-tiktoken" },
     { "path": "./packages/compaction/compaction-quality-verify" },
     { "path": "./packages/compaction/compaction-cache-aware" },
+    { "path": "./packages/compaction/compaction-mid-step-pressure" },
     { "path": "./packages/embedding/embedding" },
     { "path": "./packages/embedding/embedding-hash" },
     { "path": "./packages/embedding/embedding-api" },

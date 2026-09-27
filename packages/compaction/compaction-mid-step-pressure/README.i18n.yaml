@@ -1,0 +1,28 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/compaction/compaction-mid-step-pressure/README.md
+/:
+  en: d4fc20e330351ef2
+  zh: 6c3a20c9ee2d1659
+/deepseek-ai-dsh-compaction-mid-step-pressure:
+  en: 1fe67f5d35d8ea8a
+  zh: 6a019d523313733f
+/deepseek-ai-dsh-compaction-mid-step-pressure/summary:
+  en: 863f90b17d709491
+  zh: 4602836234e62727
+/deepseek-ai-dsh-compaction-mid-step-pressure/use-this-package:
+  en: 978508d51a762623
+  zh: 0337ed6a9f0a5ee3
+/deepseek-ai-dsh-compaction-mid-step-pressure/use-this-package/what-the-check-does:
+  en: f1b550fed7fe7abe
+  zh: 44c33a24f731b6aa
+/deepseek-ai-dsh-compaction-mid-step-pressure/model-experience:
+  en: 41c5ea12bc29c89b
+  zh: b46eae12fa77e589
+/deepseek-ai-dsh-compaction-mid-step-pressure/known-limitations-and-deferred-work:
+  en: a3e72644f13beaa6
+  zh: 896b0a2b96d3bb73
+/deepseek-ai-dsh-compaction-mid-step-pressure/dev-note:
+  en: 95cd63f346f80288
+  zh: 9087e21b9da71f04

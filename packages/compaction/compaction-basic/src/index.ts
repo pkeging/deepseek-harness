@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Basic replay-aware compaction backend.
  *
  * @module @deepseek-ai/dsh-compaction-basic
@@ -34,8 +34,6 @@ import type {
   ModelCompactPolicyConfig,
   ResolvedConfig,
 } from './types.ts'
-// Type-only: makes `tools/result` available on `ctx.on()`.
-import type {} from '@deepseek-ai/dsh-tools'
 
 export type {
   BasicCompactionConfig,
@@ -127,8 +125,6 @@ export class BasicCompactionEngine extends CompactionEngine {
     maxOverflowRetries: maxOverflowRetriesSchema,
     modelPolicies: z.array(modelPolicy),
     auto: z.boolean(),
-    midStepPressureCheck: z.boolean().default(false),
-    midStepPressureThreshold: z.number().step(1).min(1).default(3),
   })
 
   /** Resolved and validated compaction configuration. */
@@ -137,8 +133,6 @@ export class BasicCompactionEngine extends CompactionEngine {
   private readonly warnedPressureConfigTargets = new Set<string>()
   private readonly overflowRetries = new WeakMap<Agent, number>()
   private readonly overflowAgents = new WeakMap<Session, Agent>()
-  /** Counts un-acknowledged tool results per agent for mid-step pressure sensing. */
-  private readonly midStepResultCount = new WeakMap<Agent, number>()
 
   constructor(ctx: Context, config: BasicCompactionConfig = {}) {
     super(ctx)
@@ -182,10 +176,7 @@ export class BasicCompactionEngine extends CompactionEngine {
     })
 
     ctx.on('agent/status', ({ agent, status }) => {
-      if (status === 'idle') {
-        this.overflowRetries.delete(agent)
-        this.midStepResultCount.delete(agent)
-      }
+      if (status === 'idle') this.overflowRetries.delete(agent)
     })
 
     // A successful response starts a fresh overflow-recovery sequence even
@@ -195,22 +186,6 @@ export class BasicCompactionEngine extends CompactionEngine {
       const agent = this.overflowAgents.get(session)
       if (agent !== undefined) this.overflowRetries.delete(agent)
     })
-
-    // Mid-step pressure: after a batch of parallel tool calls completes,
-    // check if the result burst pushed context above threshold and compact early.
-    if (this.config.midStepPressureCheck) {
-      const threshold = this.config.midStepPressureThreshold
-      ctx.on('tools/result', (exec, _result): undefined => {
-        const agent = exec.agent
-        if (agent === undefined) return
-        const count = (this.midStepResultCount.get(agent) ?? 0) + 1
-        this.midStepResultCount.set(agent, count)
-        if (count >= threshold) {
-          this.midStepResultCount.delete(agent)
-          void this._tryMidStepCompaction(agent)
-        }
-      })
-    }
 
     ctx.on('agent/request-error', async (
       { agent, failure, signal },
@@ -369,29 +344,6 @@ export class BasicCompactionEngine extends CompactionEngine {
       `compaction still above threshold after ${spec.compactionRetries + 1} compaction attempts `
       + `(${measurement.totalTokens} estimated tokens >= threshold ${spec.thresholdTokens})`,
     )
-  }
-
-  /**
-   * Try mid-step compaction after a batch of parallel tool calls completes.
-   * Non-blocking: failures warn and the turn continues normally.
-   */
-  private async _tryMidStepCompaction(agent: Agent): Promise<void> {
-    const { ctx } = this
-    const signal = new AbortController().signal
-    try {
-      const result = await this.compactIfNeeded(agent, 'pressure', signal)
-      if (result !== null) {
-        ctx.logger.info(
-          `compaction (mid-step pressure): shadowed ${result.shadowedSeqs.length} surface nodes `
-          + `(seqs ${result.shadowedRange.start}-${result.shadowedRange.end}, `
-          + `~${result.shadowedTokenCount} tokens)`,
-        )
-      }
-    } catch (error: unknown) {
-      if (error instanceof TargetPressureConfigError) return
-      const message = error instanceof Error ? error.message : String(error)
-      ctx.logger.warn(`mid-step compaction failed: ${message}; continuing the turn`)
-    }
   }
 
   /**

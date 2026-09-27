@@ -369,6 +369,8 @@
       "@deepseek-ai/dsh-compaction-cache-aware": ["./packages/compaction/compaction-cache-aware/src"],
       "@deepseek-ai/dsh-compaction-cache-aware/invariant": ["./packages/compaction/compaction-cache-aware/src/invariant.ts"],
       "@deepseek-ai/dsh-compaction-image-offload": ["./packages/compaction/compaction-image-offload/src"],
+      "@deepseek-ai/dsh-compaction-mid-step-pressure": ["./packages/compaction/compaction-mid-step-pressure/src"],
+      "@deepseek-ai/dsh-compaction-mid-step-pressure/invariant": ["./packages/compaction/compaction-mid-step-pressure/src/invariant.ts"],
       "@deepseek-ai/dsh-compaction-quality-verify": ["./packages/compaction/compaction-quality-verify/src"],
       "@deepseek-ai/dsh-compaction-quality-verify/invariant": ["./packages/compaction/compaction-quality-verify/src/invariant.ts"],
       "@deepseek-ai/dsh-compaction-tool-result-pruner": ["./packages/compaction/compaction-tool-result-pruner/src"],
