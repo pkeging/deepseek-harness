@@ -27,7 +27,7 @@ export interface DriftSignal {
   readonly code: string
   /** Human- and model-readable explanation. */
   readonly message: string
-  /** Severity 0–1; 0 = no drift, 1 = hard block. */
+  /** Severity 0鈥?; 0 = no drift, 1 = hard block. */
   readonly severity: number
   readonly kind: DriftKind
 }
@@ -47,11 +47,11 @@ export class IntentGuardError extends HarnessError {}
  * The intent-guard service. Registered as `ctx.intentGuard`.
  */
 export class IntentGuardService extends Service {
-  static readonly inject = ['agents'] as const
+  static readonly inject = ['agents']
 
   private readonly _providers: IntentGuardProvider[] = []
 
-  constructor(ctx: Context, _config?: Record<string, never>) {
+  constructor(ctx: Context) {
     super(ctx, 'intentGuard')
   }
 
@@ -80,6 +80,9 @@ export class IntentGuardService extends Service {
    * @param agent - the calling agent.
    * @param step - the step record to evaluate.
    * @param signal - optional cancellation.
+   * @returns the first provider's drift result; `askUser` is set once its
+   *   severity reaches the confirmation threshold, and `signal` stays null when
+   *   no provider detected drift.
    */
   async observe(agent: Agent, step: StepRecord, signal?: AbortSignal): Promise<DriftResult> {
     for (const provider of this._providers) {
@@ -89,7 +92,7 @@ export class IntentGuardService extends Service {
           return { signal: result, askUser: result.severity >= 0.7 }
         }
       } catch {
-        // Provider failure is contained — move to the next provider.
+        // Provider failure is contained 鈥?move to the next provider.
         continue
       }
     }

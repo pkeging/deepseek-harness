@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Intent-clarify plugin: at turn boundaries, detects whether the agent's
  * recent trajectory has drifted from its declared goal and proactively
  * initiates a bidirectional clarification with the human user.
@@ -30,7 +30,7 @@ import type { ToolExecution } from '@deepseek-ai/dsh-tools'
 export const name = 'intent-clarify'
 
 /** Services injected. */
-export const inject = ['intentGuard'] as const
+export const inject = ['intentGuard']
 
 export interface Config {
   /**
@@ -41,7 +41,7 @@ export interface Config {
   clarificationThreshold?: number
   /**
    * Minimum steps to accumulate before running a clarification check
-   * (default 3 — avoids noise on short sessions).
+   * (default 3 鈥?avoids noise on short sessions).
    */
   minStepsBeforeCheck?: number
   /**
@@ -120,7 +120,7 @@ export function apply(ctx: Context, config: Config): void {
     if (result.signal === null) return
     if (result.signal.severity < threshold) return
 
-    // Drift detected above threshold — inject clarification prompt
+    // Drift detected above threshold 鈥?inject clarification prompt
     const clarifyMsg = createUserMessage({
       content: [{
         type: 'text',

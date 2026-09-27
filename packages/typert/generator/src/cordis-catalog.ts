@@ -126,6 +126,23 @@ export interface CordisCatalogPolicy {
   readonly inheritedServices: readonly InheritedEntry[]
   /** Maximum rendered characters per runtime type declaration. */
   readonly runtimeDeclarationMaxChars?: number
+  /**
+   * Package directories this workspace adds on top of the product. Their
+   * services and events are omitted from the catalog, which documents the
+   * shipped harness rather than one deployment's private delta.
+   */
+  readonly privatePackageDirectories?: readonly string[]
+}
+
+/**
+ * Whether one analyzed source file belongs to a private deployment package
+ * rather than the product.
+ * @param file - repository-relative path of the analyzed declaration.
+ * @param policy - catalog policy naming the private package directories.
+ * @returns true when the file lies under a listed private package directory.
+ */
+function isPrivateDeploymentFile(file: string, policy: CordisCatalogPolicy): boolean {
+  return policy.privatePackageDirectories?.some(directory => file.startsWith(directory)) === true
 }
 
 /** Complete model-level Cordis projection used by every text renderer. */
@@ -185,6 +202,7 @@ export class CordisCatalogProjector {
     const typeLinkViolations: string[] = []
     for (const packageModel of this.face.packages) {
       for (const event of packageModel.events) {
+        if (isPrivateDeploymentFile(event.location.file, this.policy)) continue
         const parsed = parseJsDoc(event.jsDoc ?? '')
         if (parsed.deprecated) continue
         const source = pointer(event.location)
@@ -260,6 +278,7 @@ export class CordisCatalogProjector {
     const chosen = new Map<string, ServiceModel>()
     for (const packageModel of this.face.packages) {
       for (const service of packageModel.services) {
+        if (isPrivateDeploymentFile(service.location.file, this.policy)) continue
         const declaration = this.renderer.declaration(service.symbol)
         const owner = /^packages\/[^/]+\/[^/]+\/src\//.exec(service.location.file)?.[0]
         if ((declaration.kind !== 'class' && declaration.kind !== 'interface')

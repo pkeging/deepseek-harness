@@ -16,13 +16,21 @@ export const name = 'tool-memory'
 export const inject = ['tools', 'memory', 'systemPrompt']
 
 export interface Config {
+  /** Register the `memory_store` tool. Defaults to `true`. */
   readonly store?: boolean
+  /** Register the `memory_recall` tool. Defaults to `true`. */
   readonly recall?: boolean
+  /** Register the `memory_list` tool. Defaults to `true`. */
   readonly list?: boolean
+  /** Maximum entries one `memory_recall` call returns. Defaults to `10`. */
   readonly recallMaxResults?: number
+  /** Maximum entries one `memory_list` call returns. Defaults to `50`. */
   readonly listMaxResults?: number
+  /** Deadline for one `memory_store` call in milliseconds. Defaults to `15000`. */
   readonly storeTimeoutMs?: number
+  /** Deadline for one `memory_recall` call in milliseconds. Defaults to `15000`. */
   readonly recallTimeoutMs?: number
+  /** Deadline for one `memory_list` call in milliseconds. Defaults to `15000`. */
   readonly listTimeoutMs?: number
 }
 

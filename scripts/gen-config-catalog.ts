@@ -25,6 +25,7 @@ import {
   translationPairSourcePredicate,
 } from './translation-pairing.ts'
 import { githubSlug } from './verify-md-links.ts'
+import { PRIVATE_PACKAGE_DIRECTORIES } from './private-packages.ts'
 
 const root = resolve(import.meta.dirname, '..')
 const PATHS = translationPairPaths('docs/config-catalog.md')
@@ -693,6 +694,8 @@ export function collectConfigCatalog(scanRoot: string = root): CatalogEntry[] {
   const manifests: { dir: string; pkg: string }[] = []
   for (const manifestRel of globSync('packages/*/*/package.json', { cwd: scanRoot }).map(path => path.split(sep).join('/')).sort()) {
     const dir = manifestRel.slice(0, -'/package.json'.length)
+    // A private deployment package stays out of the product catalog.
+    if (PRIVATE_PACKAGE_DIRECTORIES.includes(`${dir}/`)) continue
     const manifest = JSON.parse(readFileSync(resolve(scanRoot, manifestRel), 'utf8')) as { name?: string; os?: string[]; cpu?: string[]; exports?: unknown }
     const pkg = manifest.name
     if (!pkg) {

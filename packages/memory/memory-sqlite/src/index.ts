@@ -21,7 +21,9 @@ export const name = 'memory-sqlite'
 export const inject = ['embedding']
 
 export interface Config extends MemoryRuntimeConfig {
+  /** SQLite file backing this store. Omit to keep the database in memory. */
   readonly databasePath?: string
+  /** Milliseconds a statement waits on a locked database before it fails. Defaults to `5000`. */
   readonly busyTimeoutMs?: number
 }
 

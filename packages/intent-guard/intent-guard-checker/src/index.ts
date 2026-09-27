@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Intent-guard checker provider: L1 behavior pattern detector (tool repetition,
  * consecutive failure chain) and L2 semantic drift detector (embedding cosine
  * similarity against goal declaration).
@@ -26,7 +26,7 @@ import type { EmbeddingRequest } from '@deepseek-ai/dsh-embedding'
 export const name = 'intent-guard-checker'
 
 /** Services this plugin injects. */
-export const inject = ['intentGuard', 'embedding'] as const
+export const inject = ['intentGuard', 'embedding']
 
 export interface Config {
   /** L1: consecutive identical tool calls to trigger a repetition signal (default 3). */

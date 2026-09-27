@@ -26,7 +26,7 @@ export interface EvaluationResult {
   readonly category: EvalCategory
   /** Human- and model-readable explanation. */
   readonly explanation: string
-  /** Numerical progress score 0–1; null when indeterminate. */
+  /** Numerical progress score 0鈥?; null when indeterminate. */
   readonly progressScore?: number
   /** Suggested action for the agent (optional). */
   readonly suggestion?: string
@@ -59,7 +59,7 @@ export interface EvaluationRequest {
 
 /**
  * External evaluator provider. Registered with `ctx.evaluator.registerProvider`.
- * Must NOT depend on ctx.agent or ctx.tools directly — only on the explicit
+ * Must NOT depend on ctx.agent or ctx.tools directly 鈥?only on the explicit
  * request payload.
  */
 export interface EvaluatorProvider {
@@ -78,22 +78,24 @@ export interface EvaluatorProvider {
  * The evaluator service. Registered as `ctx.evaluator`.
  *
  * Unlike `ctx.intentGuard` (which runs inline with the loop), the evaluator
- * is designed to run in a SEPARATE context — optionally using a different
- * model, seed, or even a non-LLM rule engine — so its judgment is independent
+ * is designed to run in a SEPARATE context 鈥?optionally using a different
+ * model, seed, or even a non-LLM rule engine 鈥?so its judgment is independent
  * of the primary agent's reasoning chain.
  */
 export class EvaluatorService extends Service {
-  static readonly inject = [] as const
+  static readonly inject = []
 
   private readonly _providers: EvaluatorProvider[] = []
 
-  constructor(ctx: Context, _config?: Record<string, never>) {
+  constructor(ctx: Context) {
     super(ctx, 'evaluator')
   }
 
   /**
    * Register one evaluator provider. First provider wins on evaluate() calls;
    * additional providers can be registered for A/B testing.
+   * @param provider - provider added to this runtime's registration order.
+   * @returns disposer that removes the provider from this runtime.
    */
   registerProvider(provider: EvaluatorProvider): () => void {
     this._providers.push(provider)

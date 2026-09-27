@@ -48,16 +48,27 @@ export const name = 'memory-agent'
 export const inject = ['memory', 'systemPrompt', 'llm']
 
 export interface MemoryAgentConfig {
+  /** Maximum memories injected into one prompt assembly. Defaults to `5`. */
   readonly recallLimit?: number
+  /** Minimum similarity a recalled entry needs to be injected. Defaults to `0.3`. */
   readonly recallThreshold?: number
+  /** Recall limit used when the user asks about earlier conversations. Defaults to `12`. */
   readonly reviewLimit?: number
+  /** Distill memories from each finished turn with an auxiliary model call. Defaults to `true`. */
   readonly autoExtract?: boolean
+  /** Minimum seconds between extractions for one session. Defaults to `60`. */
   readonly extractCooldownSec?: number
+  /** Output token cap for the extraction call. Defaults to `512`. */
   readonly extractMaxTokens?: number
+  /** Deadline for the extraction call in milliseconds. Defaults to `30000`. */
   readonly extractTimeoutMs?: number
+  /** Provider the extraction call routes to. Supply with {@link extractModel} to override the session route. */
   readonly extractProvider?: string
+  /** Model the extraction call routes to. Supply with {@link extractProvider}. */
   readonly extractModel?: string
+  /** Similarity at or above which a candidate counts as an existing memory instead of a new one. Defaults to `0.9`. */
   readonly dedupeThreshold?: number
+  /** Order of the injected memory section in the assembled prompt. Defaults to `150`. */
   readonly sectionOrder?: number
 }
 

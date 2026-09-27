@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Model-facing evaluator query tool: lets the agent explicitly request
  * an external evaluation of its current trajectory.
  *
@@ -14,7 +14,7 @@ import type { EvalStepRecord } from '@deepseek-ai/dsh-evaluator'
 export const name = 'tool-evaluator'
 
 /** Services this plugin injects. */
-export const inject = ['tools', 'evaluator'] as const
+export const inject = ['tools', 'evaluator']
 
 export interface Config {
   /** Window of recent steps to include in the evaluation (default 10). */

@@ -28,6 +28,7 @@ import {
   REGION_END,
 } from '@deepseek-ai/dsh-typert-generator'
 import type { CordisCatalogPolicy } from '@deepseek-ai/dsh-typert-generator'
+import { PRIVATE_PACKAGE_DIRECTORIES } from './private-packages.ts'
 import { renderCordisCoreApiPages } from './cordis-core-api.ts'
 import { contextKeyMap, contextMergeFiles, eventNameList } from './cordis-walk.ts'
 import {
@@ -944,6 +945,7 @@ export const CORDIS_CATALOG_POLICY: CordisCatalogPolicy = {
   linkedTypePages: LINK_MAP,
   foundationTypeNames: FOUNDATION_TYPE_NAMES,
   typeLinkExemptions: TYPE_LINK_EXEMPTIONS,
+  privatePackageDirectories: PRIVATE_PACKAGE_DIRECTORIES,
   runtimeServiceExclusions: new Set(['cordisInspect', 'dynamicCordisRunner']),
   runtimeServices: [{
     key: 'timer',
@@ -1157,6 +1159,11 @@ export function computeOutputs(): [string, string][] {
   const declaredKeys = new Map<string, string>()
   const declaredEvents = new Map<string, string>()
   for (const { rel, sf, body } of contextMergeFiles(root, ['packages/*/*/src/**/*.ts', 'packages/*/*/src/**/*.tsx'])) {
+    // Private deployment packages stay outside the product catalog, so their
+    // Context and Events merges get no product page mapping. Glob output is
+    // OS-separated on Windows and the list is repository-relative.
+    const declaredIn = rel.replaceAll('\\', '/')
+    if (PRIVATE_PACKAGE_DIRECTORIES.some(directory => declaredIn.startsWith(directory))) continue
     for (const key of contextKeyMap(body, sf).keys()) {
       if (!declaredKeys.has(key)) declaredKeys.set(key, rel)
     }

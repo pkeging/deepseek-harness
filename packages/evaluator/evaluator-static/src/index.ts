@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Static rule-based evaluator provider for `ctx.evaluator`.
  *
  * Implements a deterministic rule engine (no LLM calls) that classifies
@@ -17,7 +17,7 @@ import type {} from '@deepseek-ai/dsh-evaluator'
 export const name = 'evaluator-static'
 
 /** Services injected. */
-export const inject = ['evaluator'] as const
+export const inject = ['evaluator']
 
 export interface Config {
   /** Consecutive failure ratio threshold for "progress-stalled" (default 0.5). */
@@ -38,9 +38,9 @@ export const Config: z<Config> = z.object({
  * Static rule-based evaluator provider.
  *
  * Implements three rules:
- * 1. High failure ratio → `progress-stalled`
- * 2. Repeated loop-signal tool → `approach-error`
- * 3. All-success with summaries → `progress-ok`
+ * 1. High failure ratio 鈫?`progress-stalled`
+ * 2. Repeated loop-signal tool 鈫?`approach-error`
+ * 3. All-success with summaries 鈫?`progress-ok`
  */
 export class EvaluatorStaticProvider implements EvaluatorProvider {
   readonly id = 'static'
@@ -56,7 +56,7 @@ export class EvaluatorStaticProvider implements EvaluatorProvider {
   }
 
   /**
-   * Synchronous evaluation — returns a resolved promise to satisfy the
+   * Synchronous evaluation 鈥?returns a resolved promise to satisfy the
    * EvaluatorProvider interface which requires `Promise<EvaluationResult>`.
    */
   // oxlint-disable-next-line require-await
@@ -88,7 +88,7 @@ export class EvaluatorStaticProvider implements EvaluatorProvider {
       if (consecutiveSame >= 3) {
         return {
           category: 'approach-error',
-          explanation: `Repeated "${lastTool}" ${consecutiveSame} times in last ${recentTools.length} steps. This indicates a loop — the tool is not advancing the goal.`,
+          explanation: `Repeated "${lastTool}" ${consecutiveSame} times in last ${recentTools.length} steps. This indicates a loop 鈥?the tool is not advancing the goal.`,
           progressScore: 0.2,
           suggestion: `Stop calling "${lastTool}". Try a different tool or gather more information before proceeding.`,
         }
@@ -110,7 +110,7 @@ export class EvaluatorStaticProvider implements EvaluatorProvider {
     // Default: uncertain
     return {
       category: 'uncertain',
-      explanation: `Evaluated ${steps.length} steps; failure ratio ${failureRatio.toFixed(2)}. No clear signal — continue but stay alert.`,
+      explanation: `Evaluated ${steps.length} steps; failure ratio ${failureRatio.toFixed(2)}. No clear signal 鈥?continue but stay alert.`,
       progressScore: 1 - failureRatio,
     }
   }

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Model-facing intent-guard tool: lets the agent explicitly query drift status.
  *
  * @module @deepseek-ai/dsh-tool-intent-guard
@@ -12,7 +12,7 @@ import type { StepRecord } from '@deepseek-ai/dsh-intent-guard'
 export const name = 'tool-intent-guard'
 
 /** Services this plugin injects. */
-export const inject = ['tools', 'intentGuard'] as const
+export const inject = ['tools', 'intentGuard']
 
 export interface Config {
   /** Whether to enable the model-facing tool (default true). */
@@ -99,7 +99,7 @@ export function apply(ctx: Context, config: Config): void {
         ? 'STOP and reassess. Your actions have significantly diverged from your goal. Consider clearing and re-declaring your objective.'
         : signal.severity >= 0.4
           ? 'CAUTION: moderate drift detected. Review your recent steps against the goal before proceeding.'
-          : 'Mild drift. Monitor but continue — adjust if drift increases.'
+          : 'Mild drift. Monitor but continue 鈥?adjust if drift increases.'
 
       return {
         has_goal: goalObjective !== undefined,

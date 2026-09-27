@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Memory-integrity provider: enforces immutability of cross-session memory
  * entries via content-addressed digests.
  *
@@ -21,7 +21,7 @@ import type { MemoryEntry, MemoryStoreRequest } from '@deepseek-ai/dsh-memory'
 export const name = 'memory-integrity'
 
 /** Services injected. */
-export const inject = ['memory'] as const
+export const inject = ['memory']
 
 export interface Config {
   /**
