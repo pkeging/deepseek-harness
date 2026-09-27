@@ -4,7 +4,7 @@
  * @module @deepseek-ai/dsh-compaction-cache-aware/config
  */
 
-import { deepFreeze } from '@deepseek-ai/dsh-llm'
+import { deepFreeze } from '@deepseek-ai/dsh-util-values'
 import type { CacheAwareConfig, ResolvedCacheAwareConfig } from './types.ts'
 
 /** Fixed default configuration. */

@@ -12,7 +12,7 @@ import { Context, Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 // Type-only: the `compaction/*` SessionEventMap merge.
 import type {} from '@deepseek-ai/dsh-compaction'
-import type { SessionEvent } from '@deepseek-ai/dsh-session'
+import type { Session, SessionEvent, SessionSeq } from '@deepseek-ai/dsh-session'
 import { resolveConfig } from './config.ts'
 import type { CompactionVerifyConfig, ResolvedVerifyConfig, VerifyResult } from './types.ts'
 import { extractFacts, checkFactPreservation } from './facts.ts'
@@ -42,7 +42,7 @@ export class CompactionQualityVerify extends Service {
 
   readonly config: ResolvedVerifyConfig
   /** Tracks compaction summary events for later verification. */
-  private readonly pendingVerifications = new Map<string, { summary: string; shadowedSeqs: number[] }>()
+  private readonly pendingVerifications = new Map<string, { summary: string; shadowedSeqs: SessionSeq[] }>()
 
   constructor(ctx: Context, config: CompactionVerifyConfig = {}) {
     super(ctx, 'compactionQualityVerify')
@@ -93,8 +93,8 @@ export class CompactionQualityVerify extends Service {
   private _verify(
     compactionId: string,
     summaryText: string,
-    shadowedSeqs: readonly number[],
-    session: { events: readonly SessionEvent[] },
+    shadowedSeqs: readonly SessionSeq[],
+    session: Session,
   ): VerifyResult {
     // Check summary length
     if (summaryText.length < this.config.minSummaryLength) {
@@ -111,7 +111,7 @@ export class CompactionQualityVerify extends Service {
     // Extract facts from shadowed messages
     const shadowedTexts: string[] = []
     for (const seq of shadowedSeqs) {
-      const event = session.events[seq]
+      const event = session.eventAt(seq)
       if (event === undefined) continue
       const text = this._extractEventText(event)
       if (text !== undefined) shadowedTexts.push(text)
@@ -166,7 +166,7 @@ export class CompactionQualityVerify extends Service {
         return event.data.content.map((b): string => b.type === 'text' ? b.text : '').join('\n')
       case 'tool/result':
         // ToolResultMessage.content is [ToolResultBlock], extract text from block.content
-        return event.data.message.content[0].content.map((b): string => b.type === 'text' ? b.text : '').join('\n')
+        return event.data.message.content.map((b): string => b.type === 'text' ? b.text : '').join('\n')
       default:
         return undefined
     }

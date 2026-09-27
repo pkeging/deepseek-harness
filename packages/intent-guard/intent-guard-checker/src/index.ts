@@ -12,6 +12,13 @@ import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import type { MessageSource } from '@deepseek-ai/dsh-llm'
 import type { UserMessage } from '@deepseek-ai/dsh-session'
+
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    /** A message injected by a guard plugin rather than produced by the user or the model. */
+    plugin: { kind: 'plugin'; plugin: string }
+  }
+}
 import type { PostToolDecision, ToolExecution } from '@deepseek-ai/dsh-tools'
 // Re-import types from source to avoid cross-package resolution during standalone check.
 import type { EmbeddingRequest } from '@deepseek-ai/dsh-embedding'

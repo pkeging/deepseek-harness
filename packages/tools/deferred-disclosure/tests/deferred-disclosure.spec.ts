@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import type { CallId } from '@deepseek-ai/dsh-llm'
+import type { ToolCallId as CallId } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import { defineContentToolFixture } from '@deepseek-ai/dsh-tools'
 import type { Agent } from '@deepseek-ai/dsh-agent'
@@ -60,7 +60,7 @@ async function assembleScope(ctx: Context, scope: ScopeKey | undefined): Promise
 describe('disabled when deferPatterns is empty', () => {
   it('keeps every tool schema intact (scoped and global assembly)', async () => {
     const ctx = await harness({})
-    const agent = ctx.agentLoop.create(SessionId('a1'), { provider: 'mock', model: 'mock' })
+    const agent = await ctx.agentLoop.create(SessionId('a1'), { provider: 'mock', model: 'mock' })
     const scoped = await assembleScope(ctx, scopeOf(agent.ctx))
     const global = await ctx.systemPrompt.assemble({})
     expect(isStripped(findTool(scoped, 'mcp__weather'))).toBe(false)
@@ -73,7 +73,7 @@ describe('disabled when deferPatterns is empty', () => {
 describe('strips deferred tools, keeps others and tool_search', () => {
   it('withholds mcp__weather params but keeps bar and tool_search full', async () => {
     const ctx = await harness({ deferPatterns: ['mcp__*'] })
-    const agent = ctx.agentLoop.create(SessionId('a1'), { provider: 'mock', model: 'mock' })
+    const agent = await ctx.agentLoop.create(SessionId('a1'), { provider: 'mock', model: 'mock' })
     const assembly = await assembleScope(ctx, scopeOf(agent.ctx))
     expect(isStripped(findTool(assembly, 'mcp__weather'))).toBe(true)
     expect(isStripped(findTool(assembly, 'bar'))).toBe(false)
@@ -88,7 +88,7 @@ describe('strips deferred tools, keeps others and tool_search', () => {
 describe('reveals after tool_search and keeps the full schema thereafter', () => {
   it('loads the schema and restores parameters for later assemblies', async () => {
     const ctx = await harness({ deferPatterns: ['mcp__*'] })
-    const agent = ctx.agentLoop.create(SessionId('a1'), { provider: 'mock', model: 'mock' })
+    const agent = await ctx.agentLoop.create(SessionId('a1'), { provider: 'mock', model: 'mock' })
     const scope = scopeOf(agent.ctx)
     expect(isStripped(findTool(await assembleScope(ctx, scope), 'mcp__weather'))).toBe(true)
 
@@ -123,7 +123,7 @@ describe('reveals after tool_search and keeps the full schema thereafter', () =>
 describe('pattern matching is name-only and glob-scoped', () => {
   it('defers only the matching tool', async () => {
     const ctx = await harness({ deferPatterns: ['bar'] })
-    const agent = ctx.agentLoop.create(SessionId('a1'), { provider: 'mock', model: 'mock' })
+    const agent = await ctx.agentLoop.create(SessionId('a1'), { provider: 'mock', model: 'mock' })
     const assembly = await assembleScope(ctx, scopeOf(agent.ctx))
     expect(isStripped(findTool(assembly, 'bar'))).toBe(true)
     expect(isStripped(findTool(assembly, 'mcp__weather'))).toBe(false)
@@ -142,7 +142,7 @@ describe('apply with no config', () => {
       parameters: { location: { type: 'string', required: true, description: 'city' } },
       async execute() { return [{ type: 'text', text: 'ok' }] },
     }))
-    const agent = ctx.agentLoop.create(SessionId('a1'), { provider: 'mock', model: 'mock' })
+    const agent = await ctx.agentLoop.create(SessionId('a1'), { provider: 'mock', model: 'mock' })
     const assembly = await assembleScope(ctx, scopeOf(agent.ctx))
     expect(isStripped(findTool(assembly, 'mcp__weather'))).toBe(false)
     expect(findTool(assembly, 'tool_search').parameters).toBeDefined()
@@ -178,7 +178,7 @@ describe('tool_search error paths', () => {
 
   it('fails an unknown tool name', async () => {
     const ctx = await harness({ deferPatterns: ['mcp__*'] })
-    const agent = ctx.agentLoop.create(SessionId('a1'), { provider: 'mock', model: 'mock' })
+    const agent = await ctx.agentLoop.create(SessionId('a1'), { provider: 'mock', model: 'mock' })
     const result = await ctx.tools.execute({
       callId: 't1' as CallId,
       name: 'tool_search',

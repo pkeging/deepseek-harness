@@ -26,7 +26,7 @@ function fakeAgent(id = 'agent-1'): Agent {
 function fakeSubagentProvider() {
   return {
     name: 'test-subagent',
-    capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false },
+    capabilities: { agentOptions: false, outputSchema: false, depthLimit: false, toolFilter: false, persona: false },
     inheritsParentContext: false,
     start: vi.fn().mockResolvedValue({
       id: SessionId('child-1'),
@@ -91,7 +91,7 @@ describe('graph-node-subagent provider', () => {
     const { ctx, subagents } = await setup()
     subagents.registerProvider({
       name: 'failing-provider',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false },
+      capabilities: { agentOptions: false, outputSchema: false, depthLimit: false, toolFilter: false, persona: false },
       inheritsParentContext: false,
       start: vi.fn().mockResolvedValue({
         id: SessionId('child-fail'),
@@ -163,7 +163,7 @@ describe('graph-node-subagent provider', () => {
     })
     subagents.registerProvider({
       name: 'inspect-provider',
-      capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false },
+      capabilities: { agentOptions: false, outputSchema: false, depthLimit: false, toolFilter: false, persona: false },
       inheritsParentContext: false,
       start: mockStart,
     })

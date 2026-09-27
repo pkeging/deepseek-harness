@@ -32,7 +32,7 @@ function waitForIdle(ctx: Context, agent: Agent): Promise<void> {
 
 /** All injected-context user messages from the agent's session log. */
 function injectedMessages(agent: Agent): { text: string; source: unknown }[] {
-  return [...agent.session.events]
+  return [...agent.session.snapshotEvents()]
     .filter((e): e is import('@deepseek-ai/dsh-session').SessionEvent<'user/message'> =>
       e.type === 'user/message' && e.data.source.kind !== 'user')
     .map(e => ({
@@ -58,7 +58,7 @@ describe('config validation', () => {
 describe('circuit resets on success', () => {
   it('success after failures clears the chain preventing HALT', async () => {
     const ctx = await harness({ failureThreshold: 3 })
-    const agent = ctx.agentLoop.create(SessionId('a1'), { provider: 'mock', model: 'mock' })
+    const agent = await ctx.agentLoop.create(SessionId('a1'), { provider: 'mock', model: 'mock' })
     let calls = 0
     ctx.tools.register(defineContentToolFixture({
       name: 'edit', description: 'e',
@@ -87,7 +87,7 @@ describe('post-execute blocks when circuit is open', () => {
   it('returns block decision on tool calls after HALT is injected', async () => {
     const dispatched: string[] = []
     const ctx = await harness({ failureThreshold: 2 })
-    const agent = ctx.agentLoop.create(SessionId('a1'), { provider: 'mock', model: 'mock' })
+    const agent = await ctx.agentLoop.create(SessionId('a1'), { provider: 'mock', model: 'mock' })
     ctx.tools.register(defineContentToolFixture({
       name: 'edit', description: 'e',
       parameters: { q: { type: 'string', required: true } },
@@ -117,7 +117,7 @@ describe('post-execute blocks when circuit is open', () => {
 describe('exclude patterns', () => {
   it('excluded tools do not participate in the failure chain', async () => {
     const ctx = await harness({ failureThreshold: 2, exclude: ['other'] })
-    const agent = ctx.agentLoop.create(SessionId('a1'), { provider: 'mock', model: 'mock' })
+    const agent = await ctx.agentLoop.create(SessionId('a1'), { provider: 'mock', model: 'mock' })
     let editCalls = 0
     ctx.tools.register(defineContentToolFixture({
       name: 'edit', description: 'e',

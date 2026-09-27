@@ -10,7 +10,6 @@ import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type {} from '@deepseek-ai/dsh-embedding'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
-import { installSettingsSection, settingsNamespace } from '@deepseek-ai/dsh-settings'
 import { launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
 import {
   ApiEmbeddingProvider,
@@ -63,9 +62,6 @@ export const Config: z<Config> = z.object({
  */
 const EMBEDDING_BASE_URL_ENV = 'DEEPSEEK_EMBEDDING_BASE_URL'
 
-/** Settings namespace carrying this provider's endpoint, model, and key reference. */
-export const EMBEDDING_API_SETTINGS_NAMESPACE = settingsNamespace('embedding-api')
-
 /**
  * Project one resolved section into the options the provider serves its next
  * embedding with. Environment fallbacks stay here rather than in the provider:
@@ -104,14 +100,5 @@ function resolveOptions(ctx: Context, config: Config): ApiEmbeddingProviderConfi
 
 /** Register the API embedding provider with `ctx.embedding`. */
 export function apply(ctx: Context, config: Config): void {
-  let current: () => Config = () => config
-  installSettingsSection(ctx, EMBEDDING_API_SETTINGS_NAMESPACE, Config, config, {
-    setSource: (source) => {
-      current = source
-    },
-    // The registration carries no resolved value: the provider projects the
-    // section per request, so a committed change needs no re-registration.
-    onChange: () => {},
-  })
-  ctx.embedding.registerProvider(new ApiEmbeddingProvider(() => resolveOptions(ctx, current())))
+  ctx.embedding.registerProvider(new ApiEmbeddingProvider(() => resolveOptions(ctx, config)))
 }

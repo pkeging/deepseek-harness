@@ -16,7 +16,15 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import { BlockAssembler, createUserMessage, deepFreeze } from '@deepseek-ai/dsh-llm'
+import { BlockAssembler, createUserMessage } from '@deepseek-ai/dsh-llm'
+
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    /** A message this plugin synthesizes for its own auxiliary model call. */
+    plugin: { kind: 'plugin'; plugin: string }
+  }
+}
+import { deepFreeze } from '@deepseek-ai/dsh-util-values'
 import type {
   FinishReason,
   GenerateOptions,
@@ -309,7 +317,7 @@ export function apply(ctx: Context & MemoryAgentServices, config: MemoryAgentCon
     const downstream = await next()
     const agent = context.agent
     if (agent === undefined) return downstream
-    const userText = lastUserMessageText(agent.session.events)
+    const userText = lastUserMessageText(agent.session.snapshotEvents())
     if (userText.length === 0) return downstream
 
     const review = isReviewQuery(userText)
@@ -365,7 +373,7 @@ export function apply(ctx: Context & MemoryAgentServices, config: MemoryAgentCon
       if (state !== undefined && now - state.lastExtractAt < extractCooldownMs) return
       perSession.set(sessionObj, { lastExtractAt: now })
 
-      const transcript = latestTurnTranscript(agent.session.events)
+      const transcript = latestTurnTranscript(agent.session.snapshotEvents())
       if (transcript.user.length === 0 && transcript.assistant.length === 0) return
 
       let provider: string
@@ -374,7 +382,7 @@ export function apply(ctx: Context & MemoryAgentServices, config: MemoryAgentCon
         provider = config.extractProvider
         model = config.extractModel
       } else {
-        const route = findLastRoute(agent.session.events)
+        const route = findLastRoute(agent.session.snapshotEvents())
         if (route === undefined) return
         provider = route.provider
         model = route.model

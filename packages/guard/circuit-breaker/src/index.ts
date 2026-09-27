@@ -14,6 +14,13 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import type { MessageSource } from '@deepseek-ai/dsh-llm'
 import type { UserMessage } from '@deepseek-ai/dsh-session'
+
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    /** A message injected by a guard plugin rather than produced by the user or the model. */
+    plugin: { kind: 'plugin'; plugin: string }
+  }
+}
 import type { ToolExecution } from '@deepseek-ai/dsh-tools'
 
 export const name = 'circuit-breaker'

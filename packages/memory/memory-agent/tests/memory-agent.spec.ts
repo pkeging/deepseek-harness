@@ -48,6 +48,7 @@ function makeAssistantMessageEvent(turn: number, text: string): SessionEvent {
   return makeEvent('assistant/message', {
     turn,
     step: 0,
+    stream: [],
     message: {
       id: MessageId(`msg-${nextSeq()}`),
       role: 'assistant',

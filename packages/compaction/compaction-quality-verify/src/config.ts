@@ -4,7 +4,7 @@
  * @module @deepseek-ai/dsh-compaction-quality-verify/config
  */
 
-import { deepFreeze } from '@deepseek-ai/dsh-llm'
+import { deepFreeze } from '@deepseek-ai/dsh-util-values'
 import type { CompactionVerifyConfig, ResolvedVerifyConfig } from './types.ts'
 
 /** Fixed default configuration. */
