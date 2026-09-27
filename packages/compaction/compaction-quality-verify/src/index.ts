@@ -12,10 +12,13 @@ import { Context, Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 // Type-only: the `compaction/*` SessionEventMap merge.
 import type {} from '@deepseek-ai/dsh-compaction'
-import type { Session, SessionEvent, SessionSeq } from '@deepseek-ai/dsh-session'
+import type { SessionEvent, SessionSeq } from '@deepseek-ai/dsh-session'
 import { resolveConfig } from './config.ts'
 import type { CompactionVerifyConfig, ResolvedVerifyConfig, VerifyResult } from './types.ts'
 import { extractFacts, checkFactPreservation } from './facts.ts'
+
+/** Maximum retained extracted-text entries per session before the oldest are dropped. */
+const EVENT_TEXT_LIMIT = 4096
 
 export type { CompactionVerifyConfig, ResolvedVerifyConfig } from './types.ts'
 export { resolveConfig } from './config.ts'
@@ -43,6 +46,13 @@ export class CompactionQualityVerify extends Service {
   readonly config: ResolvedVerifyConfig
   /** Tracks compaction summary events for later verification. */
   private readonly pendingVerifications = new Map<string, { summary: string; shadowedSeqs: SessionSeq[] }>()
+  /**
+   * Extracted text per committed event, keyed by session then seq. Maintained
+   * incrementally so verification reads owned state rather than the deprecated
+   * synchronous history readers, and bounded because compaction shadows a
+   * recent surface window rather than the whole log.
+   */
+  private readonly eventTextBySession = new WeakMap<object, Map<SessionSeq, string>>()
 
   constructor(ctx: Context, config: CompactionVerifyConfig = {}) {
     super(ctx, 'compactionQualityVerify')
@@ -52,6 +62,25 @@ export class CompactionQualityVerify extends Service {
 
   private _registerListeners(): void {
     const { ctx } = this
+    // Retain each committed event's extracted text
+    ctx.on('session/event', (session, event): undefined => {
+      const text = this._extractEventText(event)
+      if (text === undefined) return undefined
+      const key = session as unknown as object
+      let texts = this.eventTextBySession.get(key)
+      if (texts === undefined) {
+        texts = new Map()
+        this.eventTextBySession.set(key, texts)
+      }
+      texts.set(event.seq, text)
+      while (texts.size > EVENT_TEXT_LIMIT) {
+        const oldest = texts.keys().next()
+        if (oldest.done === true) break
+        texts.delete(oldest.value)
+      }
+      return undefined
+    })
+
     // Capture summary events for later verification
     ctx.on('session/event', (_session, event): undefined => {
       if (event.type !== 'compaction/summary') return undefined
@@ -76,7 +105,8 @@ export class CompactionQualityVerify extends Service {
       if (pending === undefined) return undefined
       this.pendingVerifications.delete(data.compactionId)
 
-      const result = this._verify(data.compactionId, pending.summary, pending.shadowedSeqs, _session)
+      const texts = this.eventTextBySession.get(_session) ?? new Map<SessionSeq, string>()
+      const result = this._verify(data.compactionId, pending.summary, pending.shadowedSeqs, texts)
       this._reportResult(result)
       return undefined
     })
@@ -87,14 +117,14 @@ export class CompactionQualityVerify extends Service {
    * @param compactionId - identity of the compaction.
    * @param summaryText - the generated summary text.
    * @param shadowedSeqs - surface seqs of shadowed messages.
-   * @param session - session to extract source text from.
+   * @param eventText - maintained extracted text per event seq for one session.
    * @returns verification result with fact preservation stats.
    */
   private _verify(
     compactionId: string,
     summaryText: string,
     shadowedSeqs: readonly SessionSeq[],
-    session: Session,
+    eventText: ReadonlyMap<SessionSeq, string>,
   ): VerifyResult {
     // Check summary length
     if (summaryText.length < this.config.minSummaryLength) {
@@ -111,9 +141,7 @@ export class CompactionQualityVerify extends Service {
     // Extract facts from shadowed messages
     const shadowedTexts: string[] = []
     for (const seq of shadowedSeqs) {
-      const event = session.eventAt(seq)
-      if (event === undefined) continue
-      const text = this._extractEventText(event)
+      const text = eventText.get(seq)
       if (text !== undefined) shadowedTexts.push(text)
     }
 

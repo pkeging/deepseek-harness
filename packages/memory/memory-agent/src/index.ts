@@ -105,6 +105,10 @@ interface ExtractedMemoryItem {
 
 interface PerSessionState {
   lastExtractAt: number
+  /** Events of the current and immediately preceding turn, maintained incrementally. */
+  recentEvents: SessionEvent[]
+  /** Index into {@link recentEvents} where the current turn begins. */
+  currentTurnStart: number
 }
 
 export function isReviewQuery(text: string): boolean {
@@ -309,6 +313,32 @@ export function apply(ctx: Context & MemoryAgentServices, config: MemoryAgentCon
 
   const perSession = new WeakMap<object, PerSessionState>()
 
+  /** The maintained per-session state, created on first use. */
+  function stateFor(session: unknown): PerSessionState {
+    const key = session as object
+    let state = perSession.get(key)
+    if (state === undefined) {
+      state = { lastExtractAt: 0, recentEvents: [], currentTurnStart: 0 }
+      perSession.set(key, state)
+    }
+    return state
+  }
+
+  // Retain the current and preceding turn's events incrementally. The readers
+  // below derive what they need from this bounded window instead of scanning
+  // the session's full history, which deprecated synchronous reads forbid for
+  // new callers; the preceding turn stays because `latestTurnTranscript` needs
+  // its `turn/end` while the current turn is still open.
+  ctx.on('session/event', (session, event): undefined => {
+    const state = stateFor(session)
+    if (event.type === 'turn/start') {
+      state.recentEvents = state.recentEvents.slice(state.currentTurnStart)
+      state.currentTurnStart = state.recentEvents.length
+    }
+    state.recentEvents.push(event)
+    return undefined
+  })
+
   ctx.on('system-prompt/assemble', async (
     _assembly: PromptAssembly,
     context: AssembleContext,
@@ -317,7 +347,7 @@ export function apply(ctx: Context & MemoryAgentServices, config: MemoryAgentCon
     const downstream = await next()
     const agent = context.agent
     if (agent === undefined) return downstream
-    const userText = lastUserMessageText(agent.session.snapshotEvents())
+    const userText = lastUserMessageText(stateFor(agent.session).recentEvents)
     if (userText.length === 0) return downstream
 
     const review = isReviewQuery(userText)
@@ -367,13 +397,12 @@ export function apply(ctx: Context & MemoryAgentServices, config: MemoryAgentCon
 
   async function extractFromLatestTurn(agent: Agent): Promise<void> {
     try {
-      const sessionObj = agent.session as unknown as object
-      const state = perSession.get(sessionObj)
+      const state = stateFor(agent.session)
       const now = Date.now()
-      if (state !== undefined && now - state.lastExtractAt < extractCooldownMs) return
-      perSession.set(sessionObj, { lastExtractAt: now })
+      if (now - state.lastExtractAt < extractCooldownMs) return
+      state.lastExtractAt = now
 
-      const transcript = latestTurnTranscript(agent.session.snapshotEvents())
+      const transcript = latestTurnTranscript(state.recentEvents)
       if (transcript.user.length === 0 && transcript.assistant.length === 0) return
 
       let provider: string
@@ -382,7 +411,7 @@ export function apply(ctx: Context & MemoryAgentServices, config: MemoryAgentCon
         provider = config.extractProvider
         model = config.extractModel
       } else {
-        const route = findLastRoute(agent.session.snapshotEvents())
+        const route = findLastRoute(state.recentEvents)
         if (route === undefined) return
         provider = route.provider
         model = route.model

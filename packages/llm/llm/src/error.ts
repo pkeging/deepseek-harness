@@ -83,9 +83,9 @@ const LONGER_THAN_CONTEXT = new RegExp(
 
 /**
  * Map one HTTP status and provider error detail to a provider-neutral error code.
- * Adapters call this from their `classifyError` override when they have no
- * provider-specific classification; the default implementation covers the most
- * common OpenAI-compatible error wording.
+ * A provider adapter without its own classification calls this for the most
+ * common OpenAI-compatible error wording; a provider that reads structured error
+ * types classifies those first and falls back here.
  * @param status - the HTTP status returned by the provider.
  * @param detail - provider error code/type/message text joined into one string,
  *   or `undefined` when the response body could not be parsed.

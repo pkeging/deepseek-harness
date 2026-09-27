@@ -10,7 +10,7 @@
  * Loader fixtures resolve from their package manifest.
  */
 
-import { globSync, readFileSync } from 'node:fs'
+import { existsSync, globSync, readFileSync } from 'node:fs'
 import { dirname, relative, resolve } from 'node:path'
 import { Script } from 'node:vm'
 import ts from 'typescript'
@@ -204,6 +204,7 @@ function validateEntry(value: unknown, file: string, path: string): void {
   }
   recordPlugin(value, file)
   validateMetadata(value, file, path)
+  validateExportPattern(value)
   if (isCordisGroupEntry(value)) {
     for (let index = 0; index < value.config.length; index++) {
       validateEntry(value.config[index], file, `${path}.config[${index}]`)
@@ -226,6 +227,7 @@ function validateEntry(value: unknown, file: string, path: string): void {
     if (!isRecord(patch)) continue
     recordPlugin(patch, file)
     validateMetadata(patch, file, patchPath)
+    validateExportPattern(patch)
     if (!isUnknownArray(patch.insert)) continue
     for (let insertIndex = 0; insertIndex < patch.insert.length; insertIndex++) {
       validateEntry(patch.insert[insertIndex], file, `${patchPath}.insert[${insertIndex}]`)
@@ -235,6 +237,42 @@ function validateEntry(value: unknown, file: string, path: string): void {
 
 function recordPlugin(entry: Record<string, unknown>, file: string): void {
   if (typeof entry.name === 'string') pluginReferences.push({ file, name: entry.name })
+}
+
+/**
+ * Reject namespace plugins that also carry a default export.
+ *
+ * Postmortem 0001 proved that `export default apply` on a namespace plugin
+ * causes `Loader.unwrapExports` to discard the namespace — the Loader receives
+ * the bare `apply` function, not the module namespace with `name`/`inject`/`Config`.
+ * The plugin loads with empty inject and crashes at first service access.
+ *
+ * This check only covers entries referenced from YAML; the source-plane check
+ * in `verify-export-jsdoc` covers the module shape directly.
+ */
+function validateExportPattern(entry: Record<string, unknown>): void {
+  if (typeof entry.name !== 'string') return
+  const specifier = entry.name
+  const packageName = packageNameFromSpecifier(specifier)
+  if (packageName === undefined) return
+  const pkgDir = localPackageDirectories().get(packageName)
+  if (pkgDir === undefined) return
+  const indexPath = resolve(pkgDir, 'src/index.ts')
+  if (!existsSync(indexPath)) return
+  try {
+    const source = readFileSync(indexPath, 'utf8')
+    // A namespace plugin exports `name`/`inject`/`Config`/`apply` as named
+    // exports and must NOT also have a default export; the Loader unwraps to
+    // `.default` when present, discarding the namespace.
+    const hasDefaultExport = /\bexport\s+default\s+/m.test(source)
+    const hasNameExport = /\bexport\s+(const|function|class)\s+name\b/.test(source)
+    const hasInjectExport = /\bexport\s+(const|array)\s+inject\b/.test(source)
+    if (hasNameExport && hasInjectExport && hasDefaultExport) {
+      errors.push(`${indexPath}: namespace plugin "${packageName}" exports both named 'name'/'inject' and a default export; remove the default export (Postmortem 0001)`)
+    }
+  } catch {
+    // Source read failure is non-fatal for this check.
+  }
 }
 
 function validateAppResolution(): string[] {
