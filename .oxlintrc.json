@@ -28,8 +28,6 @@
     "**/*.mjs",
     "**/*.config.ts", // Tool and app configs are outside the repository TypeScript programs.
     "packages/client/tsdown.client.ts" // Shared client build preset, also outside a TypeScript program.
-    ,
-    "**/src/*.d.ts" // Generated declaration files; source .ts files are linted directly.
   ],
   "overrides": [
     {

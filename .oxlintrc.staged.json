@@ -18,7 +18,5 @@
     "**/*.mjs",
     "**/*.config.ts",
     "packages/client/tsdown.client.ts"
-    ,
-    "**/src/*.d.ts" // Generated declaration files; source .ts files are linted directly.
   ]
 }
