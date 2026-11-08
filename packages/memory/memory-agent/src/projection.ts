@@ -39,12 +39,6 @@ export interface MemoryAgentContextState {
   model: string
 }
 
-declare module '@deepseek-ai/dsh-session-projection/types' {
-  interface SessionProjectionStateMap {
-    memoryAgentContext: MemoryAgentContextState
-  }
-}
-
 const stateSchema: z.ZodType<MemoryAgentContextState> = z.object({
   userText: z.string(),
   pendingAssistant: z.string(),

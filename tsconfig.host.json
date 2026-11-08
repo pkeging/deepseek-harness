@@ -606,7 +606,6 @@
     { "path": "./packages/evaluation/llm-judge" },
     { "path": "./packages/eval/judge" },
     { "path": "./packages/schema-align/schema-align" },
-    { "path": "./packages/tools/deferred-disclosure" },
     { "path": "./packages/llm/token-meter-tiktoken" },
     { "path": "./packages/compaction/compaction-quality-verify" },
     { "path": "./packages/compaction/compaction-cache-aware" },

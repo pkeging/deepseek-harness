@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
+import type { Mock } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { SessionId } from '@deepseek-ai/dsh-session'
-import SubagentRuntime from '@deepseek-ai/dsh-subagent'
+import type { SubagentActivation, SubagentActivationSpec, SubagentResult } from '@deepseek-ai/dsh-subagent'
 import GraphEngine, {
   GraphError,
   GraphNodeId,
@@ -23,29 +24,34 @@ function fakeAgent(id = 'agent-1'): Agent {
   return { id: SessionId(id) } as unknown as Agent
 }
 
-function fakeSubagentProvider() {
+/** One settled activation carrying `result`; `dispose` is observable by the test. */
+function activationOf(result: SubagentResult): SubagentActivation & { readonly dispose: Mock } {
   return {
-    name: 'test-subagent',
-    capabilities: { agentOptions: false, outputSchema: false, depthLimit: false, toolFilter: false, persona: false },
-    inheritsParentContext: false,
-    start: vi.fn().mockResolvedValue({
-      id: SessionId('child-1'),
-      localAgent: undefined,
-      result: Promise.resolve({
-        output: [{ type: 'text', text: 'node output' }],
-        stopReason: 'completed' as const,
-      }),
-      dispose: vi.fn(),
-    }),
+    childId: SessionId('child-1'),
+    name: 'agent-1',
+    result: Promise.resolve(result),
+    dispose: vi.fn(async () => {}),
   }
 }
 
-async function setup(): Promise<{ ctx: Context; subagents: SubagentRuntime; graphEngine: GraphEngine }> {
+/** The subagent seam the provider sees; every test asserts on this stub. */
+function makeStartActivation() {
+  return vi.fn(async (_spec: SubagentActivationSpec) => activationOf({
+    output: [{ type: 'text', text: 'node output' }],
+    stopReason: 'completed',
+  }))
+}
+
+async function setup(): Promise<{
+  ctx: Context
+  startActivation: ReturnType<typeof makeStartActivation>
+  graphEngine: GraphEngine
+}> {
   const ctx = new Context()
-  await ctx.plugin(SubagentRuntime)
   await ctx.plugin(StubGraphEngine)
-  ctx.subagents.registerProvider(fakeSubagentProvider())
-  return { ctx, subagents: ctx.subagents, graphEngine: ctx.graphEngine }
+  const startActivation = makeStartActivation()
+  ctx.provide('subagents', { startActivation })
+  return { ctx, startActivation, graphEngine: ctx.graphEngine }
 }
 
 describe('graph-node-subagent provider', () => {
@@ -56,19 +62,28 @@ describe('graph-node-subagent provider', () => {
     expect(provider).not.toBeNull()
   })
 
-  it('calls ctx.subagents.start with the configured provider name', async () => {
-    const { ctx } = await setup()
+  it('starts one caller-delivered activation with the configured provider name', async () => {
+    const { ctx, startActivation } = await setup()
     apply(ctx, { subagentProviderName: 'test-subagent' })
     const provider = ctx.graphEngine.graphNodeProviders.get('subagent')!
     expect(provider).not.toBeNull()
+    const parent = fakeAgent()
+    const signal = new AbortController().signal
     const request: GraphNodeRequest = {
       nodeId: GraphNodeId('n1'),
       label: 'Test node',
       inputs: { upstream: { value: 42 } },
-      parent: fakeAgent(),
-      signal: new AbortController().signal,
+      parent,
+      signal,
     }
     await provider.execute(request)
+    expect(startActivation).toHaveBeenCalledOnce()
+    const spec = startActivation.mock.calls[0]![0]
+    expect(spec.provider).toBe('test-subagent')
+    expect(spec.label).toBe('Test node')
+    expect(spec.parent).toBe(parent)
+    expect(spec.signal).toBe(signal)
+    expect(spec.delivery).toBe('caller')
   })
 
   it('returns success:true when the subagent completes', async () => {
@@ -87,23 +102,29 @@ describe('graph-node-subagent provider', () => {
     expect(result.output).toBe('node output')
   })
 
-  it('returns success:false and error when the subagent stops with error', async () => {
-    const { ctx, subagents } = await setup()
-    subagents.registerProvider({
-      name: 'failing-provider',
-      capabilities: { agentOptions: false, outputSchema: false, depthLimit: false, toolFilter: false, persona: false },
-      inheritsParentContext: false,
-      start: vi.fn().mockResolvedValue({
-        id: SessionId('child-fail'),
-        localAgent: undefined,
-        result: Promise.resolve({
-          output: [],
-          stopReason: 'error' as const,
-          diagnostic: 'model returned error',
-        }),
-        dispose: vi.fn(),
-      }),
+  it('disposes the exact activation it started', async () => {
+    const { ctx, startActivation } = await setup()
+    const activation = activationOf({ output: [], stopReason: 'completed' })
+    startActivation.mockResolvedValueOnce(activation)
+    apply(ctx, { subagentProviderName: 'test-subagent' })
+    const provider = ctx.graphEngine.graphNodeProviders.get('subagent') as GraphNodeProvider
+    await provider.execute({
+      nodeId: GraphNodeId('n1'),
+      label: 'Test node',
+      inputs: {},
+      parent: fakeAgent(),
+      signal: new AbortController().signal,
     })
+    expect(activation.dispose).toHaveBeenCalledOnce()
+  })
+
+  it('returns success:false and error when the subagent stops with error', async () => {
+    const { ctx, startActivation } = await setup()
+    startActivation.mockResolvedValueOnce(activationOf({
+      output: [],
+      stopReason: 'error',
+      diagnostic: 'model returned error',
+    }))
     apply(ctx, { subagentProviderName: 'failing-provider' })
     const provider = ctx.graphEngine.graphNodeProviders.get('subagent') as GraphNodeProvider
     const request: GraphNodeRequest = {
@@ -119,7 +140,8 @@ describe('graph-node-subagent provider', () => {
   })
 
   it('throws GraphError when the subagent provider is missing', async () => {
-    const { ctx } = await setup()
+    const { ctx, startActivation } = await setup()
+    startActivation.mockRejectedValue(new Error('no subagent provider registered'))
     apply(ctx, { subagentProviderName: 'nonexistent-provider' })
     const provider = ctx.graphEngine.graphNodeProviders.get('subagent') as GraphNodeProvider
     const request: GraphNodeRequest = {
@@ -133,40 +155,24 @@ describe('graph-node-subagent provider', () => {
     await expect(provider.execute(request)).rejects.toThrow('no subagent provider registered')
   })
 
-  it('forwards signal abort to the subagent', async () => {
-    const { ctx } = await setup()
+  it('forwards the node signal to the activation', async () => {
+    const { ctx, startActivation } = await setup()
     const abortController = new AbortController()
     apply(ctx, { subagentProviderName: 'test-subagent' })
     const provider = ctx.graphEngine.graphNodeProviders.get('subagent') as GraphNodeProvider
-    const request: GraphNodeRequest = {
+    abortController.abort()
+    await provider.execute({
       nodeId: GraphNodeId('n4'),
       label: 'Aborted',
       inputs: {},
       parent: fakeAgent(),
       signal: abortController.signal,
-    }
-    abortController.abort()
-    const result = await provider.execute(request)
-    expect(result.success).toBe(true)
+    })
+    expect(startActivation.mock.calls[0]![0].signal).toBe(abortController.signal)
   })
 
   it('serializes inputs into the prompt text', async () => {
-    const { ctx, subagents } = await setup()
-    const mockStart = vi.fn().mockResolvedValue({
-      id: SessionId('child-5'),
-      localAgent: undefined,
-      result: Promise.resolve({
-        output: [{ type: 'text', text: 'ok' }],
-        stopReason: 'completed' as const,
-      }),
-      dispose: vi.fn(),
-    })
-    subagents.registerProvider({
-      name: 'inspect-provider',
-      capabilities: { agentOptions: false, outputSchema: false, depthLimit: false, toolFilter: false, persona: false },
-      inheritsParentContext: false,
-      start: mockStart,
-    })
+    const { ctx, startActivation } = await setup()
     apply(ctx, { subagentProviderName: 'inspect-provider' })
     const provider = ctx.graphEngine.graphNodeProviders.get('subagent')!
     expect(provider).not.toBeNull()
@@ -178,12 +184,12 @@ describe('graph-node-subagent provider', () => {
       signal: new AbortController().signal,
     }
     await provider.execute(request)
-    expect(mockStart).toHaveBeenCalledOnce()
-    expect(mockStart.mock.calls[0]).toBeDefined()
-    const args = mockStart.mock.calls[0]![0] as { prompt: Array<{ type: string; text: string }> }
-    expect(args.prompt[0]!.type).toBe('text')
-    expect(args.prompt[0]!.text).toContain('Data transform')
-    expect(args.prompt[0]!.text).toContain('source')
-    expect(args.prompt[0]!.text).toContain('count')
+    expect(startActivation).toHaveBeenCalledOnce()
+    const [block] = startActivation.mock.calls[0]![0].prompt
+    expect(block?.type).toBe('text')
+    if (block?.type !== 'text') throw new Error('expected a text prompt block')
+    expect(block.text).toContain('Data transform')
+    expect(block.text).toContain('source')
+    expect(block.text).toContain('count')
   })
 })

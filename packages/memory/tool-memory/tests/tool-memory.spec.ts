@@ -4,6 +4,9 @@ import Loader from '@deepseek-ai/cordis-plugin-loader'
 import { ToolCallId as CallId } from '@deepseek-ai/dsh-llm'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
+import type { ToolExecutionResult } from '@deepseek-ai/dsh-tools'
+import * as NativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
+import { executeToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 import EmbeddingRuntime from '@deepseek-ai/dsh-embedding'
 import * as hashPlugin from '@deepseek-ai/dsh-embedding-hash'
 import * as memoryPlugin from '@deepseek-ai/dsh-memory-sqlite'
@@ -15,6 +18,7 @@ async function setup(): Promise<Context> {
   const ctx = new Context()
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(ToolRuntime)
+  await ctx.plugin(NativeToolExecutor)
   await ctx.plugin(EmbeddingRuntime, {})
   await ctx.plugin(hashPlugin, { dimensions: 64 })
   await ctx.plugin(memoryPlugin, {})
@@ -23,8 +27,8 @@ async function setup(): Promise<Context> {
 }
 
 let callCounter = 0
-function callTool(ctx: Context, name: string, args: unknown) {
-  return ctx.tools.execute({
+function callTool(ctx: Context, name: string, args: unknown): Promise<ToolExecutionResult> {
+  return executeToolFixture(ctx, {
     signal: testToolSignal,
     callId: CallId(`call-${++callCounter}`),
     name,

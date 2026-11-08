@@ -44,5 +44,4 @@ export const PRIVATE_PACKAGE_DIRECTORIES: readonly string[] = [
   'packages/memory/tool-memory/',
   'packages/memory-integrity/memory-integrity/',
   'packages/schema-align/schema-align/',
-  'packages/tools/deferred-disclosure/',
 ]

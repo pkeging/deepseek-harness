@@ -1,6 +1,7 @@
 # Agent Note: 渐进式工具披露（延迟 tool_search）
 
-状态：已实施
+Status: implemented
+Archived: 2026-11-08
 
 [English](2026-08-26-deferred-tool-disclosure.md) | 中文
 

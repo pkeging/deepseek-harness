@@ -1,6 +1,7 @@
 # Agent Note: Progressive tool disclosure (deferred tool_search)
 
 Status: implemented
+Archived: 2026-11-08
 
 English | [中文](2026-08-26-deferred-tool-disclosure.zh.md)
 

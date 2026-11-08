@@ -15,6 +15,8 @@ import LlmRuntime from '@deepseek-ai/dsh-llm'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import type { ToolExecutionResult } from '@deepseek-ai/dsh-tools'
+import * as NativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
+import { executeToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 import { MockAdapter, textResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
 import * as LlmJudge from '../src/index.ts'
 import type { Config, EvaluationVerdict } from '../src/index.ts'
@@ -49,6 +51,7 @@ async function mount(
   const ctx = new Context()
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(ToolRuntime)
+  await ctx.plugin(NativeToolExecutor)
   await ctx.plugin(LlmRuntime)
   const resolvedConfig: Config = Object.assign({ provider: 'mock', model: 'mock' }, config)
   await ctx.plugin(LlmJudge, resolvedConfig)
@@ -57,7 +60,7 @@ async function mount(
   ctx.llm.registerAdapter(['mock'], adapter)
   const counter = { n: 0 }
   const call = (args: { objective: string; evidence: string; rubric: string }) =>
-    ctx.tools.execute({
+    executeToolFixture(ctx, {
       signal: testToolSignal,
       callId: CallId(`jc-${++counter.n}`),
       name: 'judge',
@@ -223,7 +226,7 @@ describe('arg validation', () => {
 
   it('returns an error when args is not an object', async () => {
     const { ctx } = await mount(judgeScript({ score: 5, pass: true, reasoning: 'ok' }))
-    const result = await ctx.tools.execute({
+    const result = await executeToolFixture(ctx, {
       signal: testToolSignal,
       callId: CallId('bad-args'),
       name: 'judge',

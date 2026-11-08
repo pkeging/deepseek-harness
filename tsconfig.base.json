@@ -454,7 +454,6 @@
       "@deepseek-ai/dsh-credentials-local": ["./packages/credentials/credentials-local/src"],
       "@deepseek-ai/dsh-cua-bundle": ["./packages/experimental/cua-bundle/src"],
       "@deepseek-ai/dsh-deepseek-llm-api-extensions": ["./packages/llm/deepseek-llm-api-extensions/src"],
-      "@deepseek-ai/dsh-deferred-disclosure": ["./packages/tools/deferred-disclosure/src"],
       "@deepseek-ai/dsh-deliverable-file-references": ["./packages/deliverables/deliverable-file-references/src"],
       "@deepseek-ai/dsh-deque": ["./packages/util/deque/src"],
       "@deepseek-ai/dsh-embedding": ["./packages/embedding/embedding/src"],

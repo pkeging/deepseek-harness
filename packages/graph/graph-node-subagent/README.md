@@ -11,11 +11,11 @@ itself on `ctx.graphEngine.graphNodeProviders` under the name `'subagent'`.
 When the graph scheduler invokes the provider, it:
 
 1. Formats the node's upstream inputs as a text prompt (task label + JSON sections).
-2. Calls `ctx.subagents.start(providerName, { prompt, parent, signal })`.
-3. Awaits the child's `result` and maps it to a `GraphNodeResult`.
+2. Calls `ctx.subagents.startActivation({ provider, label, prompt, parent, signal, delivery: 'caller' })`.
+3. Awaits the activation's `result`, maps it to a `GraphNodeResult`, and disposes that exact activation.
 
-The subagent provider name used for `ctx.subagents.start()` is configurable
-via `Config.subagentProviderName` (default: `'spawn'`).
+The subagent provider name used for `ctx.subagents.startActivation()` is
+configurable via `Config.subagentProviderName` (default: `'spawn'`).
 
 ## Plugin
 

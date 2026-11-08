@@ -24,6 +24,13 @@ declare module '@deepseek-ai/dsh-llm' {
     plugin: { kind: 'plugin'; plugin: string }
   }
 }
+
+declare module '@deepseek-ai/dsh-llm/types' {
+  interface LlmRequestPurposeMap {
+    /** Memory extraction call this plugin issues after a finished turn. */
+    'memory-extract': true
+  }
+}
 import { deepFreeze } from '@deepseek-ai/dsh-util-values'
 import type {
   FinishReason,
@@ -276,18 +283,18 @@ export function apply(ctx: Context & MemoryAgentServices, config: MemoryAgentCon
   // which deprecated synchronous history reads forbid for new callers. The
   // registry materializes that state from the log, so a resumed session
   // behaves like a live one from its first event rather than starting empty.
-  ctx.sessionProjections.register(memoryAgentContextProjection)
+  // Registration is asynchronous; every read awaits the ready handle first.
+  const projectionReady = ctx.sessionProjections.register(memoryAgentContextProjection)
 
   /**
    * The folded memory context for one session.
    * @param session - session whose committed events determine the context.
    * @returns the maintained context.
-   * @throws when the projection is not registered on this runtime.
+   * @throws when the projection registration failed.
    */
-  function contextOf(session: Session): MemoryAgentContextState {
-    const state = ctx.sessionProjections.stateOf(session, 'memoryAgentContext')
-    if (state === undefined) throw new Error('memory-agent: the memoryAgentContext projection is not registered')
-    return state
+  async function contextOf(session: Session): Promise<MemoryAgentContextState> {
+    const projection = await projectionReady
+    return projection.stateOf(session)
   }
 
   ctx.on('system-prompt/assemble', async (
@@ -298,7 +305,7 @@ export function apply(ctx: Context & MemoryAgentServices, config: MemoryAgentCon
     const downstream = await next()
     const agent = context.agent
     if (agent === undefined) return downstream
-    const userText = contextOf(agent.session).userText
+    const userText = (await contextOf(agent.session)).userText
     if (userText.length === 0) return downstream
 
     const review = isReviewQuery(userText)
@@ -353,7 +360,7 @@ export function apply(ctx: Context & MemoryAgentServices, config: MemoryAgentCon
       if (now - state.lastExtractAt < extractCooldownMs) return
       state.lastExtractAt = now
 
-      const context = contextOf(agent.session)
+      const context = await contextOf(agent.session)
       // The replaced reader reported the transcript of the last COMPLETED turn,
       // so an open turn contributes nothing until its `turn/end` arrives.
       const transcript = context.completedTurn < 0
@@ -389,7 +396,7 @@ export function apply(ctx: Context & MemoryAgentServices, config: MemoryAgentCon
           system: EXTRACT_SYSTEM_PROMPT,
           maxTokens: extractMaxTokens,
           sessionId: agent.id,
-          purpose: 'session-title' as const,
+          purpose: 'memory-extract' as const,
           signal: callDeadline.signal,
         }) satisfies GenerateOptions
         const assembler = new BlockAssembler()

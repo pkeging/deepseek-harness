@@ -4,15 +4,16 @@
  * outputs (JSON-serialized, one key per input) plus the node label.
  *
  * Registers itself on `ctx.graphEngine.graphNodeProviders` under the name
- * `'subagent'`. The subagent provider name used for `ctx.subagents.start()`
- * is configurable via {@link Config.subagentProviderName} (default: `'spawn'`).
+ * `'subagent'`. The subagent provider name used for
+ * `ctx.subagents.startActivation()` is configurable via
+ * {@link Config.subagentProviderName} (default: `'spawn'`).
  *
  * @module @deepseek-ai/dsh-graph-node-subagent
  */
 
 import type { Context } from '@deepseek-ai/cordis'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
-import type { SubagentResult, SubagentRun } from '@deepseek-ai/dsh-subagent'
+import type { SubagentActivation, SubagentResult } from '@deepseek-ai/dsh-subagent'
 import type { GraphNodeProvider, GraphNodeRequest, GraphNodeResult } from '@deepseek-ai/dsh-graph'
 import { GraphError } from '@deepseek-ai/dsh-graph'
 
@@ -22,7 +23,7 @@ export const inject = ['graphEngine', 'subagents']
 /** Config for the subagent-backed graph node provider. */
 export interface Config {
   /**
-   * Name of the subagent provider to use for `ctx.subagents.start()`.
+   * Name of the subagent provider to use for `ctx.subagents.startActivation()`.
    * Must be registered before this plugin applies. Defaults to `'spawn'`.
    */
   subagentProviderName: string
@@ -86,12 +87,17 @@ class SubagentGraphNodeProvider implements GraphNodeProvider {
     const prompt: ContentBlock[] = [{ type: 'text', text: promptText }]
     const signal = request.signal
 
-    let run: SubagentRun
+    let activation: SubagentActivation
     try {
-      run = await this.ctx.subagents.start(this.subagentProviderName, {
+      activation = await this.ctx.subagents.startActivation({
+        provider: this.subagentProviderName,
+        label: request.label,
         prompt,
         parent: request.parent,
         signal,
+        // A graph node is a caller, not a model-facing step: only this provider
+        // consumes the result.
+        delivery: 'caller',
       })
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error)
@@ -99,14 +105,14 @@ class SubagentGraphNodeProvider implements GraphNodeProvider {
     }
 
     try {
-      const result = await run.result
+      const result = await activation.result
       const success = result.stopReason === 'completed'
       const nodeResult: import('@deepseek-ai/dsh-graph').GraphNodeResult = { success }
       if (success) nodeResult.output = extractText(result)
       else if (result.diagnostic) nodeResult.error = result.diagnostic
       return nodeResult
     } finally {
-      void run.dispose()
+      await activation.dispose()
     }
   }
 }
