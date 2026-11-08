@@ -752,6 +752,16 @@
   "packages/compaction/compaction-basic/tests/manual-compaction.spec.ts": {
     "9dae2342b022f2c9c7f61de694191cf5e0be290723a4e1235c603a7a78c6d4ca": 1
   },
+  "packages/compaction/compaction-mid-step-pressure/tests/mid-step-pressure.spec.ts": {
+    "4777453719b1a12ac03d7405a7cc1662ac1873b8eb0016a08ccd11f27076e803": 2,
+    "50bf0178e6a4e40b949c886873dc1eec59909ca9dada46e9d1c7d89648e26d1a": 1,
+    "7fe58280287ff63d40e979e72329f975e11015a95e9a8eec207a5a78748d3c89": 1,
+    "e770821c1f637aca0a346d5f6e6f0873ca4d7e3b070b557cddf773c160ec599a": 1,
+    "ecfa8c902ce81558c231ecafd67e8654f4ef54caf44f1dca2f9d73be80adf9c7": 1
+  },
+  "packages/compaction/compaction-quality-verify/src/index.ts": {
+    "e1afcf3bd21c4348c25c31b75c3d96e12710fc3bb3165da6a77a48731cb7e737": 1
+  },
   "packages/compaction/compaction-tool-result-pruner/tests/loader-composition.spec.ts": {
     "cf608c9b27ee8323dcd5ca6261251861abf5243d4f61896effb2e7e765d14759": 1
   },
@@ -966,6 +976,16 @@
   },
   "packages/document/office-to-pdf/tests/queue.spec.ts": {
     "bbe31b89b81048bb47c7158e78670deec5f2973286f9abc591290a8fdd851cf1": 1
+  },
+  "packages/evaluation/llm-judge/src/index.ts": {
+    "5d057c85a094a605712d5608abe743fda15b559874ae9502fe7e7bd873c6486a": 1
+  },
+  "packages/evaluation/llm-judge/tests/llm-judge.spec.ts": {
+    "64ab5463fdb068e88a33f022baff473b7a0da77854c4ecf8e26412763d6dccf6": 1,
+    "c9da2bbd63d402c70f1ef8ac2bc892a22ad9fda0222c548916ee3399b2642ba4": 1
+  },
+  "packages/evaluator/tool-evaluator/src/index.ts": {
+    "e1ff393f18642be7a05bb5a5ac87669a08e4b9a7a3a1683d4c523ec3cc3f11ac": 1
   },
   "packages/experimental/browser-use-runtime/src/index.ts": {
     "04bc8a44533574365dfedf563e2356458bcf95f990a00906938c977c1d683356": 1
@@ -1223,6 +1243,19 @@
   "packages/goal/goal/src/index.ts": {
     "09a26f55e58db3477446e73f59bd3cdf678ae76ff8f54d185ec4a0ce0dc7da2d": 1
   },
+  "packages/graph/graph-node-subagent/tests/graph-node-subagent.spec.ts": {
+    "e770821c1f637aca0a346d5f6e6f0873ca4d7e3b070b557cddf773c160ec599a": 1
+  },
+  "packages/graph/graph/src/index.ts": {
+    "b4d6561d8f0a1a6fecf7988efd7bb6da4662dbc44791901855048dd3ab6031b1": 1
+  },
+  "packages/graph/graph/tests/graph-engine.spec.ts": {
+    "e0e3dacd0b752a03cc0023018f3c6d6d1e30b3276a9d32ec68c7e9c7ee41f13e": 1,
+    "e770821c1f637aca0a346d5f6e6f0873ca4d7e3b070b557cddf773c160ec599a": 1
+  },
+  "packages/guard/circuit-breaker/tests/circuit-breaker.spec.ts": {
+    "e324f01c770b209152a062d647b6d618cab97339459f283bb5c1a526a40d2f9f": 2
+  },
   "packages/host/directory-picker-auto/tests/loader-composition.spec.ts": {
     "923a65f07e42e49412ff5a8b2f7ff681e37ed1d07bfbf2187b3672b11685edd1": 1
   },
@@ -1234,6 +1267,9 @@
   },
   "packages/host/webserver/tests/webserver.spec.ts": {
     "59c63f734e8bba862325f776e3fcbebd78a84cfb4161f8df41c216950d9bf351": 1
+  },
+  "packages/intent-guard/intent-guard/tests/intent-guard.spec.ts": {
+    "2ed6179a261a6cd1d9e84d8e8c5858eef36330853f2af62ea4222e00a9e578a3": 1
   },
   "packages/interaction/commands/tests/commands.spec.ts": {
     "27023bedcae79bf0e1312bbff230b8ac75bf70596672cd08d4ce59b70c40cefb": 1,

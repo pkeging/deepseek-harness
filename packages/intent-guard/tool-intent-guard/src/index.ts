@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Model-facing intent-guard tool: lets the agent explicitly query drift status.
  *
  * @module @deepseek-ai/dsh-tool-intent-guard
@@ -67,7 +67,7 @@ export function apply(ctx: Context, config: Config): void {
     async execute(args, exec) {
       const agent = exec.agent
       if (agent === undefined) {
-        return { has_goal: false, drift_detected: false, recommendation: 'No agent context available.', goal_objective: null as unknown as string, drift_kind: null as unknown as string, drift_message: null as unknown as string, drift_severity: null as unknown as number }
+        return { has_goal: false, drift_detected: false, recommendation: 'No agent context available.' }
       }
 
       const goalObjective = guard.getGoalObjective(agent)
@@ -83,11 +83,8 @@ export function apply(ctx: Context, config: Config): void {
       if (!result.signal) {
         return {
           has_goal: goalObjective !== undefined,
-          goal_objective: goalObjective ?? null as unknown as string,
+          ...goalObjective === undefined ? {} : { goal_objective: goalObjective },
           drift_detected: false,
-          drift_kind: null as unknown as string,
-          drift_message: null as unknown as string,
-          drift_severity: null as unknown as number,
           recommendation: goalObjective
             ? 'Your recent step aligns with your goal. Continue.'
             : 'No active goal declared. Create one with /goal if needed.',
@@ -99,13 +96,13 @@ export function apply(ctx: Context, config: Config): void {
         ? 'STOP and reassess. Your actions have significantly diverged from your goal. Consider clearing and re-declaring your objective.'
         : signal.severity >= 0.4
           ? 'CAUTION: moderate drift detected. Review your recent steps against the goal before proceeding.'
-          : 'Mild drift. Monitor but continue 鈥?adjust if drift increases.'
+          : 'Mild drift. Monitor but continue — adjust if drift increases.'
 
       return {
         has_goal: goalObjective !== undefined,
-        goal_objective: goalObjective ?? null as unknown as string,
+        ...goalObjective === undefined ? {} : { goal_objective: goalObjective },
         drift_detected: true,
-        drift_kind: signal.kind as unknown as string,
+        drift_kind: signal.kind,
         drift_message: signal.message,
         drift_severity: signal.severity,
         recommendation,
