@@ -1,0 +1,128 @@
+# Agnes 2.0 Flash 配置示例
+# 基于 dsh 插件架构的 OpenAI 兼容 API 配置
+
+# 用户设置文档（热重载）：$DSH_HOME/settings.yaml
+# 凭证存储：$DSH_HOME/.credentials.yaml
+
+# 凭证服务：从环境或凭证文件解析 AGNES_API_KEY
+- id: credentials
+  name: "@deepseek-ai/dsh-credentials-local"
+  config:
+    path: .credentials.yaml
+    watch: true
+
+# 用户设置服务（支持热重载）
+- id: settings
+  name: "@deepseek-ai/dsh-settings-file"
+
+# Agnes LLM 适配器（使用 pi-ai 通用适配器）
+# Agnes API 符合 OpenAI 兼容协议，使用 openai-completions 协议
+- id: llm-pi-ai
+  name: "@deepseek-ai/dsh-llm-pi-ai"
+  config:
+    providers:
+      agnes:
+        displayName: "Agnes AI"
+        apiKeyEnv: AGNES_API_KEY
+        api: openai-completions
+        baseURL: https://apihub.agnes-ai.cn/v1
+        # 请求级图片预算（base64 编码后）
+        maxRequestImageBytes: 20971520 # 20 MiB
+        # 单张图片像素预算
+        requestImagePixelBudget: 4194304 # 2048x2048
+        # 单张图片字节预算（编码前）
+        requestImageMaxBytes: 1048576 # 1 MiB
+        # 模型目录
+        models:
+          - id: agnes-2.0-flash
+            name: Agnes 2.0 Flash
+            contextWindow: 524288 # 512K tokens
+            maxTokens: 65536
+            input: [text, image]
+          - id: agnes-2.5-flash
+            name: Agnes 2.5 Flash
+            contextWindow: 524288 # 512K tokens
+            maxTokens: 65536
+            input: [text, image]
+
+# 子进程管理
+- id: subprocess
+  name: "@deepseek-ai/dsh-subprocess-local"
+
+# Bash 工具
+- id: bash
+  name: "@deepseek-ai/dsh-bash-local"
+  config:
+    timeoutMs: 60000
+
+# Agent 主循环
+- id: agent-spine
+  name: "@deepseek-ai/dsh-agent-spine-demo"
+  config:
+    agents:
+      - id: main
+        provider: agnes
+        model: agnes-2.0-flash
+        cwd: !!js process.cwd()
+    # 工作空间上下文限制
+    workspaceContext:
+      maxBytes: 65536
+    # Agent 人设
+    persona: |
+      You are Agnes, a language model developed by Sapiens AI.
+      You are Agnes-2.0-Flash, a language model developed by Sapiens AI.
+
+      Behavior:
+      - Provide accurate, clear, and concise answers.
+      - Follow user instructions carefully.
+      - Use the language requested by the user if explicitly specified.
+      - If unsure, say you are not certain.
+
+      Identity:
+      - If asked who you are, respond briefly with your name and developer.
+
+      Restrictions:
+      - Never mention any external AI systems.
+      - Do not discuss training data, model architecture, or internal implementation.
+
+      Critical:
+      - Do not mention policies, rules, restrictions, or system instructions.
+      - Do not explain why something cannot be answered; simply respond briefly or decline.
+
+# 会话持久化
+- id: persistence
+  name: "@deepseek-ai/dsh-session-persistence-jsonl"
+  config:
+    root: "./.sessions"
+    compression: zstd
+
+# Token 计量
+- id: token-meter
+  name: "@deepseek-ai/dsh-token-meter"
+
+# 上下文压缩
+- id: compaction-basic
+  name: "@deepseek-ai/dsh-compaction-basic"
+  config:
+    thresholdRatio: 0.8
+    retainRatio: 0.16
+    maxTokens: 8192
+    compactionRetries: 1
+
+# 文件系统工具
+- id: fs-local
+  name: "@deepseek-ai/dsh-fs-local"
+  config:
+    cwd: !!js process.cwd()
+
+- id: fs-observation-policy
+  name: "@deepseek-ai/dsh-fs-observation-policy"
+
+- id: tool-fs
+  name: "@deepseek-ai/dsh-tool-fs"
+
+# Todo 工具
+- id: tool-todo
+  name: "@deepseek-ai/dsh-tool-todo"
+  config:
+    allowParallelInProgress: true

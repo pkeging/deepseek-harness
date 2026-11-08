@@ -6,7 +6,7 @@
 
 /**
  * Base class for all harness errors. Carries a `code` (stable, programmatic —
- * e.g. `NO_ADAPTER`, `INVALID_ARGS`, `INVARIANT`) distinct from the
+ * e.g. `NO_ADAPTER`, `INVALID_ARGS`) distinct from the
  * human-readable `message`, and supports `cause` chaining via the standard
  * `ErrorOptions`. `name` defaults to the subclass constructor name.
  */
@@ -26,6 +26,9 @@ export const CONTEXT_WINDOW_EXCEEDED_CODE = 'CONTEXT_WINDOW_EXCEEDED'
 
 /** Canonical provider-neutral code for an exhausted account quota or balance. */
 export const QUOTA_EXCEEDED_CODE = 'QUOTA'
+
+/** Account-token quota that can be replenished through the first-party billing page. */
+export const ACCOUNT_QUOTA_EXCEEDED_CODE = 'ACCOUNT_QUOTA'
 
 /**
  * Canonical provider-neutral code for a response that completed normally but
@@ -70,6 +73,42 @@ const EXCEEDS_MODEL_CONTEXT = new RegExp(
   'i',
 )
 
+/** "Longer than" wording, also used by OpenAI-compatible providers. */
+const LONGER_THAN_CONTEXT = new RegExp(
+  String.raw`\b(?:input|prompt|request|messages?)\b.{0,60}`
+  + String.raw`\bis\s+longer\s+than\b.{0,60}`
+  + String.raw`\b(?:the\s+)?(?:model(?:'s)?\s+)?context(?:\s+(?:length|window))?\b`,
+  'i',
+)
+
+/**
+ * Map one HTTP status and provider error detail to a provider-neutral error code.
+ * A provider adapter without its own classification calls this for the most
+ * common OpenAI-compatible error wording; a provider that reads structured error
+ * types classifies those first and falls back here.
+ * @param status - the HTTP status returned by the provider.
+ * @param detail - provider error code/type/message text joined into one string,
+ *   or `undefined` when the response body could not be parsed.
+ * @returns the stable machine-routable error code.
+ */
+export function httpErrorCodeFromDetail(status: number, detail?: string): string {
+  if (status === 401 || status === 403) return 'AUTH'
+  if (status === 413) return 'INVALID_REQUEST'
+  if (detail === undefined) {
+    if (status === 429) return 'RATE_LIMIT'
+    if (status >= 500) return 'SERVER'
+    return `HTTP_${status}`
+  }
+  if (isQuotaExceededError(detail)) return QUOTA_EXCEEDED_CODE
+  if (status === 429) return 'RATE_LIMIT'
+  if (status === 400) {
+    if (isContextWindowExceededError(detail)) return CONTEXT_WINDOW_EXCEEDED_CODE
+    return 'INVALID_REQUEST'
+  }
+  if (status >= 500) return 'SERVER'
+  return `HTTP_${status}`
+}
+
 /**
  * Recognize the context-overflow wording used by OpenAI-compatible providers
  * and library adapters. Adapters pass all available provider code, type, and
@@ -83,6 +122,7 @@ export function isContextWindowExceededError(detail: string): boolean {
     || TOO_LARGE_FOR_CONTEXT.test(detail)
     || /\b(?:input|prompt|request)\s+(?:is\s+)?too\s+(?:long|large)\s+for\s+(?:this|the)\s+model\b/i.test(detail)
     || EXCEEDS_MODEL_CONTEXT.test(detail)
+    || LONGER_THAN_CONTEXT.test(detail)
 }
 
 /**
@@ -161,3 +201,12 @@ export function errorChain(value: unknown): string {
 export function isHarnessError(value: unknown): value is HarnessError {
   return value instanceof HarnessError
 }
+
+/**
+ * Canonical code for a request an image-capable route cannot send until more
+ * of its images are offloaded. The failure's `offloadImages` names how many
+ * more of the oldest retained occurrences must be offloaded;
+ * `dsh-compaction-image-offload` records an `image/offload` selection before
+ * the agent or summarizer retries with freshly derived input.
+ */
+export const IMAGE_OFFLOAD_REQUIRED_CODE = 'IMAGE_OFFLOAD_REQUIRED'

@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-22-memory-agent-auto-extraction-injection.md
+2026-08-22-memory-agent-auto-extraction-injection.md: 7f1973deb96b25b5c2bfd99e0dbee67cb5bf6660
+2026-08-22-memory-agent-auto-extraction-injection.zh.md: be0aa675fb0844e7299ccf3f59be73a361b13feb

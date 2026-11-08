@@ -1,0 +1,28 @@
+# Bilingual-pair consistency record for 2026-11-08-fork-auxiliary-plugin-source.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/persistence-changes/2026-11-08-fork-auxiliary-plugin-source.md
+/:
+  en: 3d5a424ae7d7e46b
+  zh: c22a8e4a62d8cc1a
+/2026-11-08-fork-auxiliary-plugin-source:
+  en: f2ef7a385355af50
+  zh: 12fd57eada1090dd
+/2026-11-08-fork-auxiliary-plugin-source/summary:
+  en: d0d754b6855490a5
+  zh: 4b0579c5824d9f14
+/2026-11-08-fork-auxiliary-plugin-source/table-of-contents:
+  en: 6cf314a069ceb451
+  zh: 9adff678e9ecab3b
+/2026-11-08-fork-auxiliary-plugin-source/declaration:
+  en: 6907136f28e48c90
+  zh: 02f8298485f3d8e7
+/2026-11-08-fork-auxiliary-plugin-source/compatibility:
+  en: 852571a5e91cab4b
+  zh: cc86300fdaf6046c
+/2026-11-08-fork-auxiliary-plugin-source/verification:
+  en: 3cbc9e0b9e7067dd
+  zh: 7e41bab362a5665f
+/2026-11-08-fork-auxiliary-plugin-source/dev-note:
+  en: b75c8458928b72b9
+  zh: 003ba4e17b4b5269

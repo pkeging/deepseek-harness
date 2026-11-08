@@ -1,0 +1,14 @@
+{
+  "name": "52kg-harness-proxy",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "52kg Harness 多用户代理服务器（基于 deepseek-harness）",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

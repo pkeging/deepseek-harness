@@ -1,0 +1,3 @@
+# Runtime state: per-user databases, the signing key, and generated profiles.
+data/
+node_modules/

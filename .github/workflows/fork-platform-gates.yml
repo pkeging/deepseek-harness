@@ -1,0 +1,59 @@
+name: Fork platform gates
+
+# The upstream PR workflows route these gates to the self-hosted
+# `dsh-ubuntu-24-04-16core` / `dsh-windows-2025-16core` runners, which do not
+# exist in this fork, so they queue forever. This workflow carries the gates
+# whose result depends on Unix symlink semantics onto hosted runners.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DSH_TELEMETRY_DISABLED: '1'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  platform-gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v5.0.0
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: '24'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build:artifacts
+      - run: pnpm run verify-node-next-types
+      - run: pnpm run verify-cordis-config
+
+  snapshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env:
+      # Replay compares recorded event logs; on a 2-core hosted runner the
+      # default parallel budget changes interleaving and drops background-job
+      # events. Run the scenarios serially so the comparison is deterministic.
+      DSH_SNAPSHOT_MAX_CONCURRENCY: '1'
+      DSH_SNAPSHOT_MAX_WORKERS: '1'
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v5.0.0
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: '24'
+      # Ubuntu 24.04 restricts unprivileged user namespaces, so bubblewrap
+      # cannot start and every `workspace-write` command fails. The recorded
+      # scenarios assume a usable sandbox backend.
+      - run: sudo apt-get update && sudo apt-get install -y bubblewrap
+      - run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+      - run: pnpm run test:snapshot

@@ -9,7 +9,7 @@ Cordis is the vendored plugin framework underneath DeepSeek Harness. This primer
 - **A plugin is a object that implements Service.** It can be a function with optional `inject` and `apply(ctx)` fields, or a `Service` subclass whose lifecycle Cordis mounts into the current context.
 - **A context is a repository of services.** A service claims a stable `ctx.<key>` such as `ctx.tools`, `ctx.llm`, or `ctx.sessions` from a context; other plugins find services via key instead of importing a concrete implementation.
 - **Declare service dependency via `inject`.** A plugin that names required services waits until those services exist, so load order is expressed through service requirements rather than manual boot sequencing.
-- **Typed Events for communication.** Services declare event names through TypeScript declaration merging, then dispatch them as `emit`, `waterfall`, `parallel`, or `serial` depending on whether listeners observe, wrap, fan out, or run in order.
+- **Typed Events for communication.** Services declare event names through TypeScript declaration merging, then dispatch them as `emit`, `waterfall`, `parallel`, `serial`, or `bail` depending on whether listeners observe, wrap, fan out, run in order, or stop at the first bail value.
 - **Registrations are reversible effects.** Prompt sections, tool schemas, adapters, providers, and listeners are installed through `ctx.effect()` or `ctx.on()` so reload and teardown unwind them predictably.
 
 ## Dispatch Modes
@@ -22,6 +22,7 @@ Every event can have one of the following dispatch mode and can only be dispatch
 | `waterfall` | No | listeners observe in registration order | Yes |
 | `parallel` | Yes | all listeners observe the event in parallel | No |
 | `serial` | Yes | listeners observe in registration order | Yes |
+| `bail` | No | listeners observe in registration order until one bails | Yes |
 
 The dispatch mode is part of the event's public contract. New harness events document it with an `@mode` tag so the generated catalog can check declarations against dispatch sites.
 
@@ -36,6 +37,41 @@ For single-decision events, short-circuiting is the design. A policy listener ca
 ## Loader Configuration
 
 `@deepseek-ai/cordis-plugin-include` parses `!!js` into expression nodes. Loader interpolates an entry's `config` (after declared injections activate, against that plugin context — `ctx.serviceName`) and its `disabled` field (at every mount decision, against the loader context); Include preserves nested row expressions until target activation. Other entry metadata stays literal. Use overlays when the environment selects plugins.
+
+**Supported expression positions:**
+
+| Field | Interpolated? | Context |
+|---|---|---|
+| `config` | ✅ Yes | Plugin context (`ctx.serviceName`) after injections activate |
+| `disabled` | ✅ Yes | Loader context at mount time |
+| `id`, `name`, `group`, `inject`, `intercept`, `isolate` | ❌ No | Must be static literals |
+| Nested values under `config` | ✅ Yes | Recursively interpolated |
+| Nested values under `disabled` | ❌ No | Expression must be at the field root |
+
+**Common mistakes:**
+
+```yaml
+# WRONG: disabled with nested expression (Postmortem 0002)
+- name: '@deepseek-ai/dsh-tool-fs'
+  disabled: { when: { __jsExpr: 'process.env.FULL_ACCESS' } }
+  # The { when: { __jsExpr: ... } } is truthy data, not an evaluated expression
+
+# WRONG: !!js under non-config metadata
+- name: '@deepseek-ai/dsh-tool-fs'
+  id: { __jsExpr: "'tool-' + name" }
+  # id must be a static string
+
+# CORRECT: conditional disabled
+- name: '@deepseek-ai/dsh-tool-fs'
+  disabled: !!jsexpr 'process.env.FULL_ACCESS === "true"'
+
+# CORRECT: conditional config (evaluated in plugin context)
+- name: '@deepseek-ai/dsh-compaction-basic'
+  config:
+    thresholdRatio: !!jsexpr 'process.env.CI ? 0.9 : 0.8'
+```
+
+When `!!js` does not produce the intended effect, the entry is usually present but with truthy non-Boolean data — the Loader treats it as enabled. For environment-based plugin selection, prefer overlays ([see overlay pattern](../packages/bundle/base/README.md#overlays)) rather than conditional metadata.
 
 ## Practical Rules
 

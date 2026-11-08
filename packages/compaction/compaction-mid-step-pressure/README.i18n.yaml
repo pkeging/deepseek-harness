@@ -1,0 +1,40 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/compaction/compaction-mid-step-pressure/README.md
+/:
+  en: d4fc20e330351ef2
+  zh: 6c3a20c9ee2d1659
+/deepseek-ai-dsh-compaction-mid-step-pressure:
+  en: 1fe67f5d35d8ea8a
+  zh: 6a019d523313733f
+/deepseek-ai-dsh-compaction-mid-step-pressure/summary:
+  en: 863f90b17d709491
+  zh: 4602836234e62727
+/deepseek-ai-dsh-compaction-mid-step-pressure/use-this-package:
+  en: 978508d51a762623
+  zh: 0337ed6a9f0a5ee3
+/deepseek-ai-dsh-compaction-mid-step-pressure/use-this-package/what-the-check-does:
+  en: b99adeb66e222a62
+  zh: f9e5d41ac3c89260
+/deepseek-ai-dsh-compaction-mid-step-pressure/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-compaction-mid-step-pressure/model-experience/mid-turn-compaction-timing:
+  en: 696680efd1101fa5
+  zh: 6d2c816cffa0db6d
+/deepseek-ai-dsh-compaction-mid-step-pressure/model-experience/mid-turn-compaction-timing/what-the-model-sees:
+  en: 51de8abb88d42a88
+  zh: 7c074f8d2503332b
+/deepseek-ai-dsh-compaction-mid-step-pressure/model-experience/mid-turn-compaction-timing/token-effect:
+  en: b7601646272dd1b6
+  zh: 238f83a1b46df934
+/deepseek-ai-dsh-compaction-mid-step-pressure/model-experience/mid-turn-compaction-timing/kv-cache-effect:
+  en: 8eaf31e8051f49b1
+  zh: 9ea299a3b63fed4f
+/deepseek-ai-dsh-compaction-mid-step-pressure/known-limitations-and-deferred-work:
+  en: 2caaff07e41647e5
+  zh: 684b5f2948554b8c
+/deepseek-ai-dsh-compaction-mid-step-pressure/known-limitations-and-deferred-work/dev-note:
+  en: edd4e324362768d4
+  zh: 144175edcd4a55a0

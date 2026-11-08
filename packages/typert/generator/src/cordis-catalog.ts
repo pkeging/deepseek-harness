@@ -124,6 +124,25 @@ export interface CordisCatalogPolicy {
   readonly inheritedEvents: readonly InheritedEntry[]
   /** Manually curated framework context members inherited by every plugin. */
   readonly inheritedServices: readonly InheritedEntry[]
+  /** Maximum rendered characters per runtime type declaration. */
+  readonly runtimeDeclarationMaxChars?: number
+  /**
+   * Package directories this workspace adds on top of the product. Their
+   * services and events are omitted from the catalog, which documents the
+   * shipped harness rather than one deployment's private delta.
+   */
+  readonly privatePackageDirectories?: readonly string[]
+}
+
+/**
+ * Whether one analyzed source file belongs to a private deployment package
+ * rather than the product.
+ * @param file - repository-relative path of the analyzed declaration.
+ * @param policy - catalog policy naming the private package directories.
+ * @returns true when the file lies under a listed private package directory.
+ */
+function isPrivateDeploymentFile(file: string, policy: CordisCatalogPolicy): boolean {
+  return policy.privatePackageDirectories?.some(directory => file.startsWith(directory)) === true
 }
 
 /** Complete model-level Cordis projection used by every text renderer. */
@@ -183,6 +202,7 @@ export class CordisCatalogProjector {
     const typeLinkViolations: string[] = []
     for (const packageModel of this.face.packages) {
       for (const event of packageModel.events) {
+        if (isPrivateDeploymentFile(event.location.file, this.policy)) continue
         const parsed = parseJsDoc(event.jsDoc ?? '')
         if (parsed.deprecated) continue
         const source = pointer(event.location)
@@ -258,6 +278,7 @@ export class CordisCatalogProjector {
     const chosen = new Map<string, ServiceModel>()
     for (const packageModel of this.face.packages) {
       for (const service of packageModel.services) {
+        if (isPrivateDeploymentFile(service.location.file, this.policy)) continue
         const declaration = this.renderer.declaration(service.symbol)
         const owner = /^packages\/[^/]+\/[^/]+\/src\//.exec(service.location.file)?.[0]
         if ((declaration.kind !== 'class' && declaration.kind !== 'interface')
@@ -333,17 +354,19 @@ export class CordisCatalogProjector {
   ): { name: string; declaration: string }[] {
     const declarations = new Map<string, string>()
     const ambiguous = new Set<string>()
+    const maxDeclarationChars = this.policy.runtimeDeclarationMaxChars ?? DEFAULT_MAX_DECL_CHARS
     for (const declaration of this.sourceDeclarations) {
-      if (declaration.face !== this.face.face || declaration.kind === 'enum'
-        || !/^packages\/[^/]+\/[^/]+\/src\/.+\.tsx?$/.test(declaration.location.file)) continue
+      if (declaration.face !== this.face.face
+        || (!/^packages\/[^/]+\/[^/]+\/src\/.+\.tsx?$/.test(declaration.location.file)
+          && !(declaration.kind === 'enum' && /^vendor\/[^/]+\/src\/.+\.ts$/.test(declaration.location.file)))) continue
       if (declarations.has(declaration.name)) {
         ambiguous.add(declaration.name)
         continue
       }
       declarations.set(
         declaration.name,
-        declaration.text.length > MAX_DECL_CHARS
-          ? `${declaration.text.slice(0, MAX_DECL_CHARS)} /* …truncated — full shape in source */`
+        declaration.text.length > maxDeclarationChars
+          ? `${declaration.text.slice(0, maxDeclarationChars)} /* …truncated — full shape in source */`
           : declaration.text,
       )
     }
@@ -613,7 +636,7 @@ function signatureTypeNames(renderer: TypeGraphRenderer, signature: SignatureMod
 }
 
 /** Declarations longer than this render as a truncated stub. */
-const MAX_DECL_CHARS = 1500
+const DEFAULT_MAX_DECL_CHARS = 1_500
 
 /** Render one value as a single-quoted TypeScript literal. */
 function quote(value: string): string {
@@ -826,7 +849,7 @@ function renderRuntimeApi(
     '    const next: string[] = []',
     '    for (const entry of TYPE_API) {',
     '      if (included.has(entry.name)) continue',
-    '      const pattern = new RegExp(`\\b${entry.name}\\b`)',
+    '      const pattern = new RegExp(`\\\\b${entry.name}\\\\b`)',
     '      if (!frontier.some(text => pattern.test(text))) continue',
     '      included.add(entry.name)',
     '      next.push(entry.declaration)',

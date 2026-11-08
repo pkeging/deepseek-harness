@@ -1,0 +1,37 @@
+# Agnes 2.0 Flash 热重载配置（Web 版）
+# 放置位置：$DSH_HOME/settings.yaml（例如 C:\Users\<你>\.dsh-agnes\settings.yaml）
+# 说明：dsh-web 的 base profile 已内置 llm-pi-ai 适配器（dormant），
+# 在 settings.yaml 里提供 providers 即可激活，无需修改 cordis.yml。
+
+llm-pi-ai:
+  providers:
+    agnes:
+      displayName: "Agnes AI"
+      apiKeyEnv: AGNES_API_KEY
+      api: openai-completions
+      baseURL: https://apihub.agnes-ai.cn/v1
+      # 请求级图片预算（base64 编码后）
+      maxRequestImageBytes: 20971520 # 20 MiB
+      # 单张图片像素预算
+      requestImagePixelBudget: 4194304 # 2048x2048
+      # 单张图片字节预算（编码前）
+      requestImageMaxBytes: 1048576 # 1 MiB
+      # 模型目录
+      models:
+        - id: agnes-2.0-flash
+          name: Agnes 2.0 Flash
+          contextWindow: 524288 # 512K tokens
+          maxTokens: 65536
+          input: [text, image]
+          reasoning: false
+        - id: agnes-2.5-flash
+          name: Agnes 2.5 Flash
+          contextWindow: 524288 # 512K tokens
+          maxTokens: 65536
+          input: [text, image]
+          reasoning: false
+
+# 默认使用 Agnes 2.0 Flash（对话中也可用 /model 命令切换）
+agent-default-model:
+  provider: agnes
+  model: agnes-2.0-flash
