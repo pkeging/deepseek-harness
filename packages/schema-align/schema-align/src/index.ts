@@ -72,6 +72,8 @@ export function registerContract(contract: ToolContract): void {
 
 /**
  * Read the contract for one tool. Returns undefined if no contract is registered.
+ * @param toolName - name of the registered tool.
+ * @returns the registered contract, or `undefined` when the tool has none.
  */
 export function getContract(toolName: string): ToolContract | undefined {
   return contracts.get(toolName)
@@ -79,6 +81,7 @@ export function getContract(toolName: string): ToolContract | undefined {
 
 /**
  * Get all registered contracts. Used by CI and the align-check plugin.
+ * @returns a read-only view of every registered contract keyed by tool name.
  */
 export function getAllContracts(): ReadonlyMap<string, ToolContract> {
   return contracts

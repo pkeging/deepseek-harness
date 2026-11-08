@@ -45,6 +45,8 @@ export const Config: z<Config> = z.object({
  * Compute a SHA-256 digest for a memory entry's content.
  * Uses only the content string (not the id or timestamps) so that
  * regenerating the digest is deterministic and id-independent.
+ * @param content - entry content to hash.
+ * @returns the lowercase hexadecimal SHA-256 digest.
  */
 export function computeDigest(content: string): string {
   return createHash('sha256').update(content, 'utf-8').digest('hex')
