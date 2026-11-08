@@ -36,7 +36,13 @@ jobs:
 
   snapshots:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 240
+    env:
+      # Replay compares recorded event logs; on a 2-core hosted runner the
+      # default parallel budget changes interleaving and drops background-job
+      # events. Run the scenarios serially so the comparison is deterministic.
+      DSH_SNAPSHOT_MAX_CONCURRENCY: '1'
+      DSH_SNAPSHOT_MAX_WORKERS: '1'
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: pnpm/action-setup@v5.0.0
