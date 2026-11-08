@@ -39,6 +39,8 @@ packages/**/__pycache__/
 apps/web/dist/
 .artifacts/
 .dsh-build/
+.dsh-report/
+.ui-review/
 .playwright-mcp/
 .orig
 .worktrees/
@@ -49,3 +51,6 @@ native/system/test/bin/
 examples/*/.env
 examples/*/.credentials.yaml
 examples/*/.credentials.yaml.example
+
+# Generated company-signed CUA release record.
+/packages/experimental/cua-macos/cua-helper.json

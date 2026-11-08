@@ -19,9 +19,6 @@
     },
     {
       "path": "../../embedding/embedding"
-    },
-    {
-      "path": "../../runtime-diagnostics/invariants"
     }
   ]
 }

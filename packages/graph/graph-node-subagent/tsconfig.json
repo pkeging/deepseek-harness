@@ -16,9 +16,6 @@
     },
     {
       "path": "../../subagent/subagent"
-    },
-    {
-      "path": "../../runtime-diagnostics/invariants"
     }
   ]
 }

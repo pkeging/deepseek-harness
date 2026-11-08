@@ -4,22 +4,51 @@
     "rootDir": "src",
     "outDir": "lib/types"
   },
-  "include": ["src"],
+  "include": [
+    "src"
+  ],
   "references": [
-    { "path": "../../../vendor/cordis" },
-    { "path": "../../../vendor/schemastery" },
-    { "path": "../../../vendor/timer" },
-    { "path": "../memory" },
-    { "path": "../memory-sqlite" },
-    { "path": "../../llm/llm" },
-    { "path": "../../core/session" },
-    { "path": "../../core/agent" },
-    { "path": "../../core/tools" },
-    { "path": "../../core/system-prompt" },
-    { "path": "../../session/session-projection" },
-    { "path": "../../core/scope" },
-    { "path": "../../util/timeout" },
-    { "path": "../../util/brand" },
-    { "path": "../../runtime-diagnostics/invariants" }
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../../vendor/schemastery"
+    },
+    {
+      "path": "../../../vendor/timer"
+    },
+    {
+      "path": "../memory"
+    },
+    {
+      "path": "../memory-sqlite"
+    },
+    {
+      "path": "../../llm/llm"
+    },
+    {
+      "path": "../../core/session"
+    },
+    {
+      "path": "../../core/agent"
+    },
+    {
+      "path": "../../core/tools"
+    },
+    {
+      "path": "../../core/system-prompt"
+    },
+    {
+      "path": "../../session/session-projection"
+    },
+    {
+      "path": "../../core/scope"
+    },
+    {
+      "path": "../../util/timeout"
+    },
+    {
+      "path": "../../util/brand"
+    }
   ]
 }

@@ -34,10 +34,10 @@ import {
 } from '@deepseek-ai/node-addon-system/landlock-run'
 import { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import { SandboxProvider, SandboxUnavailableError, canonicalPath } from '@deepseek-ai/dsh-sandbox'
+import { SandboxProvider, SandboxUnavailableError, SandboxUnsupportedPolicyError, canonicalPath } from '@deepseek-ai/dsh-sandbox'
 import type { ConfinedArgv, ConfinedSandboxMode, RunnerFailureRule, SandboxEnforcement, SandboxPolicy } from '@deepseek-ai/dsh-sandbox'
 import type { SessionId } from '@deepseek-ai/dsh-session'
-import { AclWriteGrant, assertTempRootOutsideWorkspace, tempWriteSid, workspaceWriteSid } from '@deepseek-ai/dsh-sandbox-windows-acl'
+import { AclWriteGrant, assertTempRootOutsideWorkspace, registerAclDiagnosisSkill, tempWriteSid, workspaceWriteSid } from '@deepseek-ai/dsh-sandbox-windows-acl'
 import { assertNever } from '@deepseek-ai/dsh-util-values'
 import { bwrapProfileArgs, landlockProfileArgs, seatbeltProfileArgs } from './profiles.ts'
 
@@ -295,6 +295,12 @@ export class LocalSandboxProvider extends SandboxProvider {
     this.configuredRunnerFailureSignatures = runnerFailureSignatures
     this.probeTimeoutMs = config.probeTimeoutMs as number
     assertPositiveFinite('probeTimeoutMs', this.probeTimeoutMs)
+    // An operator-supplied runner does not use the ACL backend. The registry
+    // remains optional and may be mounted after this provider.
+    /* v8 ignore next 3 -- Windows-only registration; the Linux coverage lane cannot take this branch */
+    if (process.platform === 'win32' && this.runnerCommand === undefined) {
+      ctx.inject(['skills'], (skillsCtx) => { registerAclDiagnosisSkill(skillsCtx) })
+    }
     // The temp grants are revoked with the provider: a clean server
     // shutdown leaves no temp ACEs behind (workspace ACEs stand by design —
     // the reuse cache; an unclean shutdown leaves them for the next
@@ -361,6 +367,9 @@ export class LocalSandboxProvider extends SandboxProvider {
    * @returns the runner invocation.
    */
   private windowsAclRunnerArgv(policy: SandboxPolicy): string[] {
+    if (policy.mode === 'workspace-write' && (policy.additionalWritableRoots?.length ?? 0) > 0) {
+      throw new SandboxUnsupportedPolicyError('Windows ACL confinement does not support additional writable directories; remove the extra grants or use a supported host')
+    }
     const sessionId = policy.sessionId
     if (sessionId === undefined || policy.mode === 'read-only') {
       return [

@@ -28,9 +28,6 @@
     },
     {
       "path": "../../core/scope"
-    },
-    {
-      "path": "../../runtime-diagnostics/invariants"
     }
   ]
 }
